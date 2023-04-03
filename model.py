@@ -23,6 +23,12 @@ class User(db.Model):
     # Class Methods
     def __repr__(self):
         return f'<User username={self.username}>'
+    
+    ## Class CRUD Methods
+    @classmethod
+    def create(cls, email: str, password: str, username: str):
+        """Create and return a new user."""
+        return cls(email=email, password=password, username=username)
 
 # Recipes
 class Recipe(db.Model):
@@ -35,6 +41,7 @@ class Recipe(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     source_url = db.Column(db.String)
     ## should we put last modified date here?? or query?
+    last_modified = db.Column(db.DateTime)
 
     ## 2.0 or stretch features
     forked_from = db.Column(db.Integer)
@@ -48,6 +55,21 @@ class Recipe(db.Model):
     # Class Methods
     def __repr__(self):
         return f'<Recipe id={self.id}>'
+
+    ## Class CRUD Methods
+    @classmethod
+    def create(cls, owner, modified_on, is_public=True, source_url=None, forked_from=None):
+        """Create and return a new recipe."""
+        return cls(owner=owner, last_modified=modified_on, 
+                   is_public=is_public, source_url=source_url, forked_from=forked_from)
+    
+    # @classmethod
+    # def createNew(cls, owner, modified_on, is_public=True, source_url=None, forked_from=None,
+    #               ):
+    #     """Create and return a new recipe, with associated first edit"""
+    #     this_recipe = cls(owner=owner, last_modified=modified_on, 
+    #                is_public=is_public, source_url=source_url, forked_from=forked_from)
+    #     first_edit = Edit.create()
 
 # Experiments
 class Experiment(db.Model):
@@ -73,6 +95,15 @@ class Experiment(db.Model):
     def __repr__(self):
         return f'<Experiment id={self.id} commit_date={self.commit_date}>'
 
+    ## Class CRUD Methods
+    @classmethod
+    def create(cls, parent_recipe, commit_msg, notes, commit_date,
+               create_date=None, commit_by=None):
+        """Create and return a new experiment"""
+        return cls(recipe=parent_recipe, commit_msg=commit_msg,
+                   notes=notes, commit_date=commit_date, 
+                   create_date=create_date, commit_by=commit_by)
+
 # Edits
 class Edit(db.Model):
     """An edit to a recipe."""
@@ -97,6 +128,14 @@ class Edit(db.Model):
     # Class Methods
     def __repr__(self):
         return f'<Edit id={self.id} commit_date={self.commit_date}>'
+    
+    ## Class CRUD Methods
+    @classmethod
+    def create(cls, recipe, title, desc, ingredients, 
+               instructions, commit_date, commit_by=None):
+        return cls(recipe=recipe, title=title, description=desc,
+                   ingredients=ingredients, instructions=instructions,
+                   commit_date=commit_date, commit_by=commit_by)
 
 # CONNECTING TO DB
 def connect_to_db(flask_app, db_uri="postgresql:///forkd", echo=True):
