@@ -2,4 +2,11 @@
 {% block title %}{{user.username}}{% endblock %}
 {% block body %}
 <h1>{{user.username}}</h1>
+<ul>
+    {% for recipe in user.recipes %}
+    <li><a href="/{{user.username}}/{{recipe.id}}">
+    {{recipe.edits[0].title}} - {{recipe.edits[0].description}} - {{recipe.edits[0].commit_date}}
+    </a></li>
+    {% endfor %}
+</ul>
 {% endblock %}
