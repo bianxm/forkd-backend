@@ -29,6 +29,17 @@ class User(db.Model):
     def create(cls, email: str, password: str, username: str):
         """Create and return a new user."""
         return cls(email=email, password=password, username=username)
+    
+    @classmethod
+    def get_all(cls):
+        return cls.query.all()
+    
+    @classmethod
+    def get_by_username(cls, username):
+        try:
+            return cls.query.filter_by(username=username).one()
+        except:
+            return None
 
 # Recipes
 class Recipe(db.Model):
