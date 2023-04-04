@@ -18,7 +18,7 @@ class User(db.Model):
     username = db.Column(db.String, unique = True)
 
     # Relationships
-    recipes = db.relationship('Recipe', back_populates='owner') # list of corresponding Recipe objects
+    recipes = db.relationship('Recipe', back_populates='owner', order_by='desc(Recipe.last_modified)') # list of corresponding Recipe objects
 
     # Class Methods
     def __repr__(self):
@@ -39,7 +39,7 @@ class User(db.Model):
         try:
             return cls.query.filter_by(username=username).one()
         except:
-            return None
+            return None 
 
 # Recipes
 class Recipe(db.Model):
@@ -60,8 +60,8 @@ class Recipe(db.Model):
 
     # Relationships
     owner = db.relationship('User', back_populates='recipes') # one corresponding User object
-    experiments = db.relationship('Experiment', back_populates='recipe') # list of corresponding Experiment objects
-    edits = db.relationship('Edit', back_populates='recipe') # list of corresponding Edit objects
+    experiments = db.relationship('Experiment', back_populates='recipe', order_by='desc(Experiment.commit_date)') # list of corresponding Experiment objects
+    edits = db.relationship('Edit', back_populates='recipe', order_by='desc(Edit.commit_date)') # list of corresponding Edit objects
 
     # Class Methods
     def __repr__(self):
