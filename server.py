@@ -1,7 +1,7 @@
 """Server for Forkd"""
 
 from flask import (Flask, render_template, request,
-                   flash, session, redirect)
+                   flash, session, redirect, jsonify)
 from model import connect_to_db, db
 from jinja2 import StrictUndefined
 from dotenv import load_dotenv
@@ -14,6 +14,7 @@ app = Flask(__name__)
 app.secret_key = os.environ['FLASK_KEY']
 app.jinja_env.undefined = StrictUndefined
 
+# DISPLAY ROUTES
 @app.route('/')
 def show_homepage():
     return render_template('homepage.html')
@@ -41,6 +42,16 @@ def show_recipe(username, recipe_id):
     # and sort 
     timeline = this_recipe.experiments + this_recipe.edits
     return render_template('recipe.html', user=this_user, recipe=this_recipe, timeline_items=timeline)
+
+# API ROUTES
+@app.route('/api/experiment/<id>')
+def experiment_details(id):
+    # get experiment from server by id
+    this_experiment = model.Experiment.get_by_id(id)
+    # return in json
+    return jsonify(commit_msg=this_experiment.commit_msg,
+                   notes=this_experiment.notes,
+                   commit_date=this_experiment.commit_date)
 
 if __name__ == '__main__':
     connect_to_db(app)

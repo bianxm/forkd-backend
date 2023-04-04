@@ -2,10 +2,19 @@
 {% block title %}{{recipe.edits[0].title}}{% endblock %}
 {% block body %}
 <h1>{{recipe.edits[0].title}}</h1>
-{{user.username}}
+- {{user.username}}
+<p>{{recipe.edits[0].description}}</p>
+<h2>Ingredients</h2>
+<p>{{recipe.edits[0].ingredients}}</p>
+<h2>Instructions</h2>
+<p>{{recipe.edits[0].instructions}}</p>
+<h2>Timeline</h2>
 <ul>
     {% for item in timeline_items | sort(attribute='commit_date', reverse=True) %}
-    <li>{{item}}</li>
+    <li><a class="timeline-item {{item.htmlclass}}" id="{{item.id}}">{{item}}</a></li>
     {% endfor %}
 </ul>
+{% endblock %}
+{% block after_body %}
+<script src="/static/timeline.js"></script>
 {% endblock %}

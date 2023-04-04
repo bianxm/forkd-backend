@@ -106,6 +106,8 @@ class Experiment(db.Model):
     # Relationships
     recipe = db.relationship('Recipe', back_populates='experiments') # one corresponsding Recipe object
 
+    htmlclass = 'experiment'
+
     # Class Methods
     def __repr__(self):
         return f'<Experiment id={self.id} commit_date={self.commit_date}>'
@@ -118,6 +120,10 @@ class Experiment(db.Model):
         return cls(recipe=parent_recipe, commit_msg=commit_msg,
                    notes=notes, commit_date=commit_date, 
                    create_date=create_date, commit_by=commit_by)
+    
+    @classmethod
+    def get_by_id(cls, id):
+        return cls.query.get(id)
 
 # Edits
 class Edit(db.Model):
@@ -139,6 +145,8 @@ class Edit(db.Model):
 
     # Relationships
     recipe = db.relationship('Recipe', back_populates='edits') # one corresponding Recipe object
+
+    htmlclass = 'edit'
 
     # Class Methods
     def __repr__(self):
