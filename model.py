@@ -74,6 +74,10 @@ class Recipe(db.Model):
         return cls(owner=owner, last_modified=modified_on, 
                    is_public=is_public, source_url=source_url, forked_from=forked_from)
     
+    @classmethod
+    def get_by_id(cls, id):
+        return cls.query.get(id)
+    
     # @classmethod
     # def createNew(cls, owner, modified_on, is_public=True, source_url=None, forked_from=None,
     #               ):

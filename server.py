@@ -29,8 +29,18 @@ def show_user_profile(username):
     this_user = model.User.get_by_username(username)
     if this_user is None:
         return render_template('user_not_found.html')
+        # edit this to redirect to a 404 page
     else:
         return render_template('user_profile.html', user=this_user)
+
+@app.route('/<username>/<recipe_id>')
+def show_recipe(username, recipe_id):
+    this_recipe = model.Recipe.get_by_id(recipe_id)
+    this_user = model.User.get_by_username(username)
+    # combine recipe.experiments and recipe.edits lists
+    # and sort 
+    timeline = this_recipe.experiments + this_recipe.edits
+    return render_template('recipe.html', user=this_user, recipe=this_recipe, timeline_items=timeline)
 
 if __name__ == '__main__':
     connect_to_db(app)

@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block title %}{{recipe.edits[0].title}}{% endblock %}
+{% block body %}
+<h1>{{recipe.edits[0].title}}</h1>
+{{user.username}}
+<ul>
+    {% for item in timeline_items | sort(attribute='commit_date', reverse=True) %}
+    <li>{{item}}</li>
+    {% endfor %}
+</ul>
+{% endblock %}
