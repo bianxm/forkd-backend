@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}Add New Recipe{% endblock %}
+{% block body %}
+<h1>Add a new recipe</h1>
+<div class="container">
+<form action="/newRecipe" method="POST" role='form'>
+<div class="mb-3">
+    <label for="title" class="form-label">Title</label>
+    <input type="text" id="title" class="form-control" name="title" required>
+</div>
+<div class="mb-3">
+    <label for="desc" class="form-label">Description</label>
+    <textarea id="desc" class="form-control" rows="2" name="description"></textarea>
+</div>
+<div class="mb-3">
+    <label for="ingredients" class="form-label">Ingredients</label>
+    <textarea id="ingredients" class="form-control" rows="5" name="ingredients" required></textarea>
+</div>
+<div class="mb-3">
+    <label for="instructions" class="form-label">Instructions</label>
+    <textarea id="instructions" class="form-control" rows="5" name="instructions" required></textarea>
+</div>
+<div class="mb-3">
+    <label for="url" class="form-label">Source URL</label>
+    <input type="text" id="url" class="form-control" name="url">
+</div>
+  <button type="submit" class="btn btn-primary">Submit</button>
+</form>
+</div>
+{% endblock %}

@@ -7,6 +7,7 @@ from jinja2 import StrictUndefined
 from dotenv import load_dotenv
 import os
 import model
+from datetime import datetime
 
 load_dotenv()
 
@@ -96,6 +97,28 @@ def show_recipe(username, recipe_id):
     # and sort 
     timeline = this_recipe.experiments + this_recipe.edits
     return render_template('recipe.html', user=this_user, recipe=this_recipe, timeline_items=timeline)
+
+@app.route('/newRecipe')
+def new_recipe_form():
+    return render_template('new_recipe_form.html')
+
+@app.route('/newRecipe', methods=['POST'])
+def submit_new_recipe():
+    title = request.form.get('title')
+    description = request.form.get('description')
+    ingredients = request.form.get('ingredients')
+    instructions = request.form.get('instructions')
+    given_url = request.form.get('url')
+    submitter_id = session.get('user_id')
+    submitter = model.User.get_by_id(submitter_id)
+    now = datetime.now()
+    # create a recipe
+    newRecipe = model.Recipe.create(owner=submitter, modified_on=now, source_url=given_url)
+    # create a first edit
+    model.Edit.create(newRecipe, title, description, ingredients, instructions, now)
+    model.db.session.add(newRecipe)
+    model.db.session.commit()
+    return redirect(f"/{session.get('username')}")
 
 # API ROUTES
 @app.route('/api/experiment/<id>')

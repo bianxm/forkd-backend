@@ -35,6 +35,10 @@ class User(db.Model):
         return cls.query.all()
     
     @classmethod
+    def get_by_id(cls, id):
+        return cls.query.get(id)
+    
+    @classmethod
     def get_by_username(cls, username):
         try:
             return cls.query.filter_by(username=username).one()
@@ -142,6 +146,7 @@ class Edit(db.Model):
     id = db.Column(db.Integer, autoincrement=True, primary_key=True)
     recipe_id = db.Column(db.Integer, db.ForeignKey('recipes.id'))
     title = db.Column(db.String)
+    # diff_title
     description = db.Column(db.String)
     ingredients = db.Column(db.Text)
     instructions = db.Column(db.Text)

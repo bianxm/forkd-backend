@@ -2,6 +2,9 @@
 {% block title %}{{user.username}}{% endblock %}
 {% block body %}
 <h1>{{user.username}}</h1>
+{% if session.get('user_id') == user.id %}
+<a href="/newRecipe">+ Add a new recipe</a>
+{% endif %}
 <ul>
     {% for recipe in user.recipes %}
     <li><a href="/{{user.username}}/{{recipe.id}}">
