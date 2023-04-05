@@ -40,6 +40,13 @@ class User(db.Model):
             return cls.query.filter_by(username=username).one()
         except:
             return None 
+    
+    @classmethod
+    def get_by_email(cls, email):
+        try:
+            return cls.query.filter_by(email=email).one()
+        except:
+            return None 
 
 # Recipes
 class Recipe(db.Model):
