@@ -120,6 +120,29 @@ def submit_new_recipe():
     model.db.session.commit()
     return redirect(f"/{session.get('username')}")
 
+@app.route('/newExp')
+def new_exp_form():
+    parent_recipe_id = request.args.get('recipe')
+    this_recipe = model.Recipe.get_by_id(parent_recipe_id)
+    return render_template('new_experiment_form.html',recipe=this_recipe)
+
+@app.route('/newExp', methods=['POST'])
+def submit_new_exp():
+    print(request.form)
+    commit_msg = request.form.get('commit-msg')
+    notes = request.form.get('notes')
+    recipe_id = request.form.get('recipe_id')
+    now = datetime.now()
+    this_recipe = model.Recipe.get_by_id(recipe_id)
+    # make a new experiment
+    new_experiment = model.Experiment.create(this_recipe, commit_msg, notes, now)
+    # update recipe last-modified 
+    this_recipe.update_last_modified(now)
+    model.db.session.add(this_recipe, new_experiment)
+    model.db.session.add_all([new_experiment, this_recipe])
+    model.db.session.commit()
+    return redirect(f"/{session.get('username')}/{recipe_id}")
+
 # API ROUTES
 @app.route('/api/experiment/<id>')
 def experiment_details(id):

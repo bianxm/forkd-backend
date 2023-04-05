@@ -34,3 +34,11 @@ const timelineItems = document.querySelectorAll('.timeline-item');
 for(const timelineItem of timelineItems){
     timelineItem.addEventListener('click', expandItem)
 }
+
+// const addExperimentLink = document.querySelector('#add-experiment');
+// addExperimentLink.addEventListener('click', ()=>{
+//     console.log('add an experiment!');
+//     const addExperimentForm = document.createElement('form');
+//     addExperimentForm.classList.add(''); 
+//     document.querySelector('#form-holder').appendChild(addExperimentForm);
+// });

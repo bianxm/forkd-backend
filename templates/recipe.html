@@ -10,6 +10,11 @@
 <p>{{recipe.edits[0].instructions}}</p>
 <h2>Timeline</h2>
 <ul>
+    {% if session.get('user_id') == user.id %}
+    <li>
+        <a id="add-experiment" href='/newExp?recipe={{recipe.id}}'>Add an experiment</a> 
+    </li>
+    {% endif %}
     {% for item in timeline_items | sort(attribute='commit_date', reverse=True) %}
     <li><a class="timeline-item {{item.htmlclass}}" id="{{item.id}}">{{item}}</a></li>
     {% endfor %}

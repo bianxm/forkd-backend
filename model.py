@@ -88,6 +88,10 @@ class Recipe(db.Model):
     @classmethod
     def get_by_id(cls, id):
         return cls.query.get(id)
+
+    # instance methods
+    def update_last_modified(self, modified_date) -> None:
+        self.last_modified = modified_date
     
     # @classmethod
     # def createNew(cls, owner, modified_on, is_public=True, source_url=None, forked_from=None,
