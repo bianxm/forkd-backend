@@ -9,12 +9,7 @@ db = SQLAlchemy()
 class DictableColumn():
     def to_dict(self):
         crowded_dict = self.__dict__
-        cleaned_dict = dict()
-        for key, val in crowded_dict.items():
-            if isinstance(val, (str, int, float, bool, list, dict, type(None), datetime)):
-                cleaned_dict[key] = val
-        # {key:val for key, val in crowded_dict if type(val) is type('string')}
-        return cleaned_dict
+        return {key:val for key, val in crowded_dict.items() if isinstance(val,(str,int,float,bool, list, dict, type(None), datetime))}
 
 # DATA MODEL
 # Users
@@ -187,6 +182,10 @@ class Edit(DictableColumn, db.Model):
         return cls(recipe=recipe, title=title, description=desc,
                    ingredients=ingredients, instructions=instructions,
                    commit_date=commit_date, commit_by=commit_by)
+    
+    @classmethod
+    def get_by_id(cls, id):
+        return cls.query.get(id)
     
     # instance method
     ## get the previous edit object to this one. or None if it is the creation edit

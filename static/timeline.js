@@ -6,6 +6,12 @@ function expandItem(evt){
     // check if edit or experiment
     if(item.classList.contains('edit')){
         console.log('this is an edit!')
+        console.log(`/api/edit/${item.id}`)
+        fetch(`/api/edit/${item.id}`)
+            .then((response) => response.json())
+            .then((edit_data) => {
+                console.log(edit_data);
+            });
         // only need to display the fields that were edited....
         // choices:
         //   * check differences between current edit and previous edit on python side

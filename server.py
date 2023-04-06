@@ -188,6 +188,15 @@ def experiment_details(id):
     # return in json
     return this_experiment.to_dict()
 
+@app.route('/api/edit/<id>')
+def edit_details(id):
+    # get edit and previous edit from server by id
+    this_edit = model.Edit.get_by_id(id)
+    prev_edit = this_edit.get_previous()
+    # return in json
+    return {'curr':this_edit.to_dict(), 
+            'prev':prev_edit.to_dict() if prev_edit is not None else None}
+
 if __name__ == '__main__':
     connect_to_db(app)
     app.run(host='0.0.0.0', debug=True)
