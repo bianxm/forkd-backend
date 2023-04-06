@@ -186,9 +186,7 @@ def experiment_details(id):
     # get experiment from server by id
     this_experiment = model.Experiment.get_by_id(id)
     # return in json
-    return jsonify(commit_msg=this_experiment.commit_msg,
-                   notes=this_experiment.notes,
-                   commit_date=this_experiment.commit_date)
+    return this_experiment.to_dict()
 
 if __name__ == '__main__':
     connect_to_db(app)

@@ -1,12 +1,24 @@
 """Models for Forkd (recipe journaling app)"""
 
 from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
 
 db = SQLAlchemy()
 
+# A Mixin
+class DictableColumn():
+    def to_dict(self):
+        crowded_dict = self.__dict__
+        cleaned_dict = dict()
+        for key, val in crowded_dict.items():
+            if isinstance(val, (str, int, float, bool, list, dict, type(None), datetime)):
+                cleaned_dict[key] = val
+        # {key:val for key, val in crowded_dict if type(val) is type('string')}
+        return cleaned_dict
+
 # DATA MODEL
 # Users
-class User(db.Model):
+class User(DictableColumn, db.Model):
     """A user."""
     
     # SQL-side setup
@@ -53,7 +65,7 @@ class User(db.Model):
             return None 
 
 # Recipes
-class Recipe(db.Model):
+class Recipe(DictableColumn, db.Model):
     """A recipe."""
     
     # SQL-side setup
@@ -102,7 +114,7 @@ class Recipe(db.Model):
     #     first_edit = Edit.create()
 
 # Experiments
-class Experiment(db.Model):
+class Experiment(DictableColumn, db.Model):
     """An experiment or journal entry that belongs to a recipe."""
 
     # SQL-side setup
@@ -141,7 +153,7 @@ class Experiment(db.Model):
         return cls.query.get(id)
 
 # Edits
-class Edit(db.Model):
+class Edit(DictableColumn, db.Model):
     """An edit to a recipe."""
 
     # SQL-side setup
@@ -175,6 +187,12 @@ class Edit(db.Model):
         return cls(recipe=recipe, title=title, description=desc,
                    ingredients=ingredients, instructions=instructions,
                    commit_date=commit_date, commit_by=commit_by)
+    
+    # instance method
+    ## get the previous edit object to this one. or None if it is the creation edit
+    def get_previous(self):
+        edits_list = self.recipe.edits
+        return None if edits_list[-1] == self else edits_list[edits_list.index(self) + 1]
 
 # CONNECTING TO DB
 def connect_to_db(flask_app, db_uri="postgresql:///forkd", echo=True):
