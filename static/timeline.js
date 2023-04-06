@@ -10,13 +10,28 @@ function expandItem(evt){
         fetch(`/api/edit/${item.id}`)
             .then((response) => response.json())
             .then((edit_data) => {
-                console.log(edit_data);
+                const {curr, prev} = edit_data;
+                const expDiv = document.createElement('div');
+                // ---- for each of title, desc, ingredients, instructions
+                for(const attr of ['title', 'description','ingredients','instructions']){
+                    if(curr[attr] !== prev[attr]){
+                        const this_diff = Diff.createPatch(attr,prev[attr], curr[attr]);
+                        const this_diff2Html = Diff2Html.html(this_diff, {
+                            matching: 'lines',
+                            drawFileList: false,
+                            srcPrefix: false,
+                            dstPrefix: false,
+                            outputFormal: 'line-by-line'
+                        });
+                        expDiv.insertAdjacentHTML('beforeend', `<div>${this_diff2Html}</div>`)
+                    }
+                }
+                // ------ check if it changed. if yes:
+                // --------- get the unified diff via jsdiff
+                // --------- get the diff2html object and add to the div to be inserted
+                // and then insert div 
+                item.insertAdjacentElement('afterend', expDiv);
             });
-        // only need to display the fields that were edited....
-        // choices:
-        //   * check differences between current edit and previous edit on python side
-        //   * check differences between current edit and previous edit on js side
-        //   * have a flag of which rows were edited? separate table? same table?   
     }
     
     if(item.classList.contains('experiment')){
@@ -34,6 +49,21 @@ function expandItem(evt){
                 item.insertAdjacentElement('afterend', expDiv);
             });
     }
+    
+    if(item.classList.contains('createEdit')){
+        fetch(`/api/edit/${item.id}`)
+            .then((response) => response.json())
+            .then((edit_data) => {
+                const {curr} = edit_data;
+                const expDiv = document.createElement('div');
+                expDiv.insertAdjacentHTML('beforeend', `<h3>${curr['title']}</h3>`)
+                expDiv.insertAdjacentHTML('beforeend', `<p>${curr['description']}</p>`)
+                expDiv.insertAdjacentHTML('beforeend', `<p>${curr['ingredients']}</p>`)
+                expDiv.insertAdjacentHTML('beforeend', `<p>${curr['instructions']}</p>`)
+                item.insertAdjacentElement('afterend', expDiv);
+            });
+    };
+        
 }
 
 const timelineItems = document.querySelectorAll('.timeline-item');

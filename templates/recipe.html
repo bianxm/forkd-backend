@@ -18,11 +18,19 @@
         <a id="add-edit" href='/newEdit?recipe={{recipe.id}}'>Add an edit</a> 
     </li>
     {% endif %}
-    {% for item in timeline_items | sort(attribute='commit_date', reverse=True) %}
+    {% for item in timeline_items[:-1] | sort(attribute='commit_date', reverse=True) %}
     <li><a class="timeline-item {{item.htmlclass}}" id="{{item.id}}">{{item}}</a></li>
     {% endfor %}
+    <li><a class="timeline-item createEdit" id="{{timeline_items[-1].id}}">Recipe created</li>
 </ul>
 {% endblock %}
 {% block after_body %}
+<!-- CSS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/diff2html/bundles/css/diff2html.min.css" />
+
+<!-- Javascripts -->
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/diff2html/bundles/js/diff2html.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.js" integrity="sha512-Q54KM8pgGVaei1v6v/rbidhylhT8uSv1Vr/eL13GtbXEyVLSIt7PI6DN2gH0/lMBpGyQrFe6SHV25Vnvsodwtg==" 
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/static/timeline.js"></script>
 {% endblock %}
