@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Add New Edit{% endblock %}
+{% block body %}
+<h1>Add a new edit to {{recipe.edits[0].title}}</h1>
+<div class="container">
+<form action="/newEdit" method="POST" role='form'>
+<div class="mb-3">
+    <label for="title" class="form-label">Title</label>
+    <input type="text" id="title" class="form-control" name="title" required value="{{recipe.edits[0].title}}">
+</div>
+<div class="mb-3">
+    <label for="desc" class="form-label">Description</label>
+    <textarea id="desc" class="form-control" rows="2" name="description">{{recipe.edits[0].description}}</textarea>
+</div>
+<div class="mb-3">
+    <label for="ingredients" class="form-label">Ingredients</label>
+    <textarea id="ingredients" class="form-control" rows="5" name="ingredients" required>{{recipe.edits[0].ingredients}}</textarea>
+</div>
+<div class="mb-3">
+    <label for="instructions" class="form-label">Instructions</label>
+    <textarea id="instructions" class="form-control" rows="5" name="instructions" required>{{recipe.edits[0].instructions}}</textarea>
+</div>
+<input type="hidden" name="recipe_id" value="{{recipe.id}}"/>
+<button type="submit" class="btn btn-primary">Submit</button>
+</form>
+</div>
+<script>
+    const myForm = document.querySelector('form');
+    myForm.addEventListener('submit', (evt) => {
+        
+        // check that there has been changes
+        const titleChanged = '{{recipe.edits[0].title}}' !== document.querySelector('#title').value;
+        const descChanged = '{{recipe.edits[0].description}}' !== document.querySelector('#desc').value;
+        const ingChanged = `{{recipe.edits[0].ingredients}}` !== document.querySelector('#ingredients').value;
+        const instChanged = `{{recipe.edits[0].instructions}}`!== document.querySelector('#instructions').value;
+
+        if(titleChanged|descChanged|ingChanged|instChanged){
+            console.log('post the form')
+        }else{
+            console.log('change something!!!')
+            evt.preventDefault();
+            // show an error message
+            document.querySelector('form').insertAdjacentHTML('afterend','<p>change something first!</p>');
+        }
+    });
+</script>
+{% endblock %}

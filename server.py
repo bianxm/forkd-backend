@@ -69,7 +69,7 @@ def login():
             # save user_id in session
             session['user_id'] = this_user.id
             session['username'] = this_user.username
-            flash('Logged in!')
+            flash('Logged in!', 'success')
             return redirect(f'/{this_user.username}') 
     return redirect('/')
 
@@ -138,9 +138,46 @@ def submit_new_exp():
     new_experiment = model.Experiment.create(this_recipe, commit_msg, notes, now)
     # update recipe last-modified 
     this_recipe.update_last_modified(now)
-    model.db.session.add(this_recipe, new_experiment)
     model.db.session.add_all([new_experiment, this_recipe])
     model.db.session.commit()
+    flash('New experiment created!','success')
+    return redirect(f"/{session.get('username')}/{recipe_id}")
+
+@app.route('/newEdit')
+def new_edit_form():
+    parent_recipe_id = request.args.get('recipe')
+    this_recipe = model.Recipe.get_by_id(parent_recipe_id)
+    return render_template('new_edit_form.html',recipe=this_recipe)
+
+@app.route('/newEdit', methods=['POST'])
+def submit_new_edit():
+    # grab POST info
+    recipe_id = request.form.get('recipe_id')
+    title = request.form.get('title')
+    description = request.form.get('description')
+    ingredients = request.form.get('ingredients')
+    instructions = request.form.get('instructions')
+    
+    # some constants
+    now = datetime.now()
+    this_recipe = model.Recipe.get_by_id(recipe_id)
+    
+    # create a new edit
+    new_edit = model.Edit.create(this_recipe,
+                                 title, description,
+                                 ingredients, instructions,
+                                 now)
+
+    # update the recipe's last_modified
+    this_recipe.update_last_modified(now)
+
+    # commit to db
+    model.db.session.add_all([new_edit, this_recipe])
+    model.db.session.commit()
+
+    # route back to recipe timeline
+    flash('New edit created!','success')
+    # return f'{request.form}'
     return redirect(f"/{session.get('username')}/{recipe_id}")
 
 # API ROUTES

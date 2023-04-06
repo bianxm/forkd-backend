@@ -14,6 +14,9 @@
     <li>
         <a id="add-experiment" href='/newExp?recipe={{recipe.id}}'>Add an experiment</a> 
     </li>
+    <li>
+        <a id="add-edit" href='/newEdit?recipe={{recipe.id}}'>Add an edit</a> 
+    </li>
     {% endif %}
     {% for item in timeline_items | sort(attribute='commit_date', reverse=True) %}
     <li><a class="timeline-item {{item.htmlclass}}" id="{{item.id}}">{{item}}</a></li>
