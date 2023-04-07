@@ -2,7 +2,19 @@
 {% block title %}{{recipe.edits[0].title}}{% endblock %}
 {% block body %}
 <h1>{{recipe.edits[0].title}}</h1>
-- {{owner.username}}
+<h4>- {{owner.username}}</h4>
+<!--  if session.get('user_id') You can fork your own recipe, it's fine
+ and owner.id != session.get('user_id')  -->
+{% if session.get('user_id') %} 
+<form action="/newRecipe" method="POST" id="recipeForm">
+    <input type="hidden" id="title" name="title" value="{{recipe.edits[0].title}}">
+    <input type="hidden" id="desc" name="description" value="{{recipe.edits[0].description}}">
+    <input type="hidden" id="ingredients" name="ingredients" value="{{recipe.edits[0].ingredients}}">
+    <input type="hidden" id="instructions" name="instructions" value="{{recipe.edits[0].instructions}}">
+    <input type="hidden" name="forked-from" value="{{recipe.edits[0].id}}"/>
+    <button id="fork">Fork this recipe!</button>
+</form>
+{% endif %}
 <div class="newline">{{recipe.edits[0].description}}</div>
 <h2>Ingredients</h2>
 <div class="newline">{{recipe.edits[0].ingredients}}</div>

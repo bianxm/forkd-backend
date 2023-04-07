@@ -121,12 +121,14 @@ def submit_new_recipe():
     ingredients = request.form.get('ingredients')
     instructions = request.form.get('instructions')
     given_url = request.form.get('url')
+    forked_from_id = request.form.get('forked-from') 
+
     submitter_id = session.get('user_id')
     submitter = model.User.get_by_id(submitter_id)
     now = datetime.now()
 
     # db changes
-    newRecipe = model.Recipe.create(owner=submitter, modified_on=now, source_url=given_url) # create recipe
+    newRecipe = model.Recipe.create(owner=submitter, modified_on=now, source_url=given_url, forked_from=forked_from_id) # create recipe
     model.Edit.create(newRecipe, title, description, ingredients, instructions, now) # create first edit
     model.db.session.add(newRecipe)
     model.db.session.commit()
@@ -185,6 +187,7 @@ def submit_new_edit():
     flash('New edit created!','success')
     return redirect(f"/{session.get('username')}/{recipe_id}")
 
+
 # API ROUTES
 @app.route('/api/extractRecipe')
 def extract_recipe_from_url():
@@ -211,7 +214,6 @@ def extract_recipe_from_url():
             'ingredients': recipe_details.get('extendedIngredients'),
             'instructions': recipe_details.get('instructions'),
             'imgUrl': recipe_details.get('image')}
-
 
 @app.route('/api/experiment/<id>')
 def experiment_details(id):
