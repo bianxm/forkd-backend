@@ -1,15 +1,17 @@
 """Server for Forkd"""
 
 from flask import (Flask, render_template, request,
-                   flash, session, redirect, jsonify)
+                   flash, session, redirect, make_response)
 from model import connect_to_db, db
 from jinja2 import StrictUndefined
 from dotenv import load_dotenv
 import os
 import model
 from datetime import datetime
+import requests
 
 load_dotenv()
+SPOONACULAR_KEY = os.environ['SPOONACULAR_KEY']
 
 app = Flask(__name__)
 app.secret_key = os.environ['FLASK_KEY']
@@ -184,6 +186,33 @@ def submit_new_edit():
     return redirect(f"/{session.get('username')}/{recipe_id}")
 
 # API ROUTES
+@app.route('/api/extractRecipe')
+def extract_recipe_from_url():
+    given_url = request.args.get('url')
+    # return info from spoonacular 
+    # (just title, desc, ingredients, instructions)
+
+    # consider using helper functions so it's not all in the route
+    url = f'https://api.spoonacular.com/recipes/extract'
+    res = requests.get(url, {'apiKey':SPOONACULAR_KEY,
+                             'url': given_url,
+                             'forceExtraction':'false',
+                             'analyze': 'false',
+                             'includeNutrition':'false',
+                             'includeTaste':'false'})
+    
+    if res.status_code != 200:
+        make_response('External API call failed', 400)
+    
+    recipe_details = res.json()
+
+    return {'title': recipe_details.get('title'),
+            'desc': f"Grabbed via Spoonacular from {recipe_details.get('sourceName')}\nGiven summary: {recipe_details.get('summary')}\nGiven license: {recipe_details.get('license')}",
+            'ingredients': recipe_details.get('extendedIngredients'),
+            'instructions': recipe_details.get('instructions'),
+            'imgUrl': recipe_details.get('image')}
+
+
 @app.route('/api/experiment/<id>')
 def experiment_details(id):
     # get experiment from server by id
