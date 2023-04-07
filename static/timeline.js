@@ -15,6 +15,7 @@ function expandItem(evt){
             .then((edit_data) => {
                 const {curr, prev} = edit_data;
                 const expDiv = document.createElement('div');
+                expDiv.classList.add('newline');
                 // for each of title, desc, ingredients, instructions
                 for(const attr of ['title', 'description','ingredients','instructions']){
                     // check if it changed. if yes:
@@ -48,6 +49,7 @@ function expandItem(evt){
                 // console.log(exp_data);
                 // insert experiment data in new div
                 const expDiv = document.createElement('div');
+                expDiv.classList.add('newline');
                 expDiv.insertAdjacentHTML('beforeend', `<h3>${exp_data['commit_msg']}</h3>`)
                 expDiv.insertAdjacentHTML('beforeend', `<p>(${exp_data['commit_date']})</p>`)
                 expDiv.insertAdjacentHTML('beforeend', `<p>${exp_data['notes']}</p>`)
@@ -62,6 +64,7 @@ function expandItem(evt){
             .then((edit_data) => {
                 const {curr} = edit_data;
                 const expDiv = document.createElement('div');
+                expDiv.classList.add('newline');
                 expDiv.insertAdjacentHTML('beforeend', `<h3>${curr['title']}</h3>`)
                 expDiv.insertAdjacentHTML('beforeend', `<p>${curr['description']}</p>`)
                 expDiv.insertAdjacentHTML('beforeend', `<p>${curr['ingredients']}</p>`)

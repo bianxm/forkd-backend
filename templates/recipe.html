@@ -3,11 +3,11 @@
 {% block body %}
 <h1>{{recipe.edits[0].title}}</h1>
 - {{owner.username}}
-<p>{{recipe.edits[0].description}}</p>
+<div class="newline">{{recipe.edits[0].description}}</div>
 <h2>Ingredients</h2>
-<p>{{recipe.edits[0].ingredients}}</p>
+<div class="newline">{{recipe.edits[0].ingredients}}</div>
 <h2>Instructions</h2>
-<p>{{recipe.edits[0].instructions}}</p>
+<div class="newline">{{recipe.edits[0].instructions}}</div>
 <h2>Timeline</h2>
 <ul>
     {% if session.get('user_id') == owner.id %}

@@ -8,6 +8,11 @@
         <title>
             {% block title %}{% endblock %}
         </title>
+        <style>
+            .newline {
+                white-space: pre-wrap;
+            }
+        </style>
     </head>
     <body>
         {% if session.get('user_id') %}
