@@ -2,7 +2,7 @@
 {% block title %}{{recipe.edits[0].title}}{% endblock %}
 {% block body %}
 <h1>{{recipe.edits[0].title}}</h1>
-- {{user.username}}
+- {{owner.username}}
 <p>{{recipe.edits[0].description}}</p>
 <h2>Ingredients</h2>
 <p>{{recipe.edits[0].ingredients}}</p>
@@ -10,7 +10,7 @@
 <p>{{recipe.edits[0].instructions}}</p>
 <h2>Timeline</h2>
 <ul>
-    {% if session.get('user_id') == user.id %}
+    {% if session.get('user_id') == owner.id %}
     <li>
         <a id="add-experiment" href='/newExp?recipe={{recipe.id}}'>Add an experiment</a> 
     </li>

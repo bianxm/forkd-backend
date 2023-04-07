@@ -15,6 +15,7 @@ app = Flask(__name__)
 app.secret_key = os.environ['FLASK_KEY']
 app.jinja_env.undefined = StrictUndefined
 
+
 # DISPLAY ROUTES
 @app.route('/')
 def show_homepage():
@@ -29,13 +30,13 @@ def show_all_users():
 # Sign Up
 @app.route('/users', methods=['POST'])
 def register_user():
+    # parse out POST params 
     given_email = request.form.get('email')
     given_username = request.form.get('username')
     given_password = request.form.get('password')
     confirm_password = request.form.get('confirmPassword')
-    print(given_password)
-    print(confirm_password)
-    print(given_password != confirm_password)
+    
+    # input validation
     if model.User.get_by_email(given_email):
         flash('Sorry, that email is already registered. Please sign in instead','danger')
         return redirect('/')
@@ -46,6 +47,8 @@ def register_user():
     if given_password != confirm_password:
         flash("Sorry, passwords don't match",'danger') 
         return redirect('/')
+    
+    # if input is valid, create the user
     new_user = model.User.create(given_email, given_password, given_username)
     db.session.add(new_user)
     db.session.commit()
@@ -54,8 +57,11 @@ def register_user():
 
 @app.route('/login', methods=['POST'])
 def login():
+    # parse out POST params
     given_id = request.form.get('login_id')
     given_password = request.form.get('password')
+    
+    # input validation
     if '@' in given_id:
         this_user = model.User.get_by_email(given_id)
     else:
@@ -66,12 +72,13 @@ def login():
         if not this_user.password == given_password:
             flash('Wrong password','danger')
         else:
-            # save user_id in session
+            # input is valid, so save user_id in session
             session['user_id'] = this_user.id
             session['username'] = this_user.username
             flash('Logged in!', 'success')
             return redirect(f'/{this_user.username}') 
     return redirect('/')
+
 
 @app.route('/logout')
 def logout():
@@ -84,19 +91,21 @@ def logout():
 def show_user_profile(username):
     this_user = model.User.get_by_username(username)
     if this_user is None:
-        return render_template('user_not_found.html')
-        # edit this to redirect to a 404 page
+        return render_template('404.html')
     else:
         return render_template('user_profile.html', user=this_user)
 
 @app.route('/<username>/<recipe_id>')
 def show_recipe(username, recipe_id):
     this_recipe = model.Recipe.get_by_id(recipe_id)
-    this_user = model.User.get_by_username(username)
-    # combine recipe.experiments and recipe.edits lists
-    # and sort 
-    timeline = this_recipe.experiments + this_recipe.edits
-    return render_template('recipe.html', user=this_user, recipe=this_recipe, timeline_items=timeline)
+    owner = model.User.get_by_username(username)
+    
+    # if given owner in url doesn't own the recipe, 404 error
+    if this_recipe not in owner.recipes:
+        return render_template('404.html')
+
+    timeline = this_recipe.experiments + this_recipe.edits # combine lists to get full timeline
+    return render_template('recipe.html', owner=owner, recipe=this_recipe, timeline_items=timeline)
 
 @app.route('/newRecipe')
 def new_recipe_form():
@@ -104,6 +113,7 @@ def new_recipe_form():
 
 @app.route('/newRecipe', methods=['POST'])
 def submit_new_recipe():
+    # parse out POST params
     title = request.form.get('title')
     description = request.form.get('description')
     ingredients = request.form.get('ingredients')
@@ -112,10 +122,10 @@ def submit_new_recipe():
     submitter_id = session.get('user_id')
     submitter = model.User.get_by_id(submitter_id)
     now = datetime.now()
-    # create a recipe
-    newRecipe = model.Recipe.create(owner=submitter, modified_on=now, source_url=given_url)
-    # create a first edit
-    model.Edit.create(newRecipe, title, description, ingredients, instructions, now)
+
+    # db changes
+    newRecipe = model.Recipe.create(owner=submitter, modified_on=now, source_url=given_url) # create recipe
+    model.Edit.create(newRecipe, title, description, ingredients, instructions, now) # create first edit
     model.db.session.add(newRecipe)
     model.db.session.commit()
     return redirect(f"/{session.get('username')}")
@@ -128,16 +138,16 @@ def new_exp_form():
 
 @app.route('/newExp', methods=['POST'])
 def submit_new_exp():
-    print(request.form)
+    # parse out POST params
     commit_msg = request.form.get('commit-msg')
     notes = request.form.get('notes')
     recipe_id = request.form.get('recipe_id')
     now = datetime.now()
     this_recipe = model.Recipe.get_by_id(recipe_id)
-    # make a new experiment
-    new_experiment = model.Experiment.create(this_recipe, commit_msg, notes, now)
-    # update recipe last-modified 
-    this_recipe.update_last_modified(now)
+    
+    # db changes
+    new_experiment = model.Experiment.create(this_recipe, commit_msg, notes, now) # create experiment
+    this_recipe.update_last_modified(now) # update recipe's last_modified field
     model.db.session.add_all([new_experiment, this_recipe])
     model.db.session.commit()
     flash('New experiment created!','success')
@@ -151,33 +161,26 @@ def new_edit_form():
 
 @app.route('/newEdit', methods=['POST'])
 def submit_new_edit():
-    # grab POST info
+    # parse out POST params
     recipe_id = request.form.get('recipe_id')
     title = request.form.get('title')
     description = request.form.get('description')
     ingredients = request.form.get('ingredients')
     instructions = request.form.get('instructions')
-    
-    # some constants
     now = datetime.now()
     this_recipe = model.Recipe.get_by_id(recipe_id)
     
-    # create a new edit
+    # db changes
     new_edit = model.Edit.create(this_recipe,
                                  title, description,
                                  ingredients, instructions,
-                                 now)
-
-    # update the recipe's last_modified
-    this_recipe.update_last_modified(now)
-
-    # commit to db
+                                 now) # create new edit
+    this_recipe.update_last_modified(now) # update recipe's last_modified field
     model.db.session.add_all([new_edit, this_recipe])
     model.db.session.commit()
 
     # route back to recipe timeline
     flash('New edit created!','success')
-    # return f'{request.form}'
     return redirect(f"/{session.get('username')}/{recipe_id}")
 
 # API ROUTES
@@ -190,7 +193,7 @@ def experiment_details(id):
 
 @app.route('/api/edit/<id>')
 def edit_details(id):
-    # get edit and previous edit from server by id
+    # get given edit and previous edit from server by id
     this_edit = model.Edit.get_by_id(id)
     prev_edit = this_edit.get_previous()
     # return in json

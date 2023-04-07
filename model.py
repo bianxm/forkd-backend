@@ -1,15 +1,17 @@
 """Models for Forkd (recipe journaling app)"""
 
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import Mapped
 from datetime import datetime
 
 db = SQLAlchemy()
 
-# A Mixin
+# Mixin
 class DictableColumn():
     def to_dict(self):
         crowded_dict = self.__dict__
-        return {key:val for key, val in crowded_dict.items() if isinstance(val,(str,int,float,bool, list, dict, type(None), datetime))}
+        return {key:val for key, val in crowded_dict.items() 
+                if isinstance(val,(str,int,float,bool, list, dict, type(None), datetime))}
 
 # DATA MODEL
 # Users
@@ -33,7 +35,7 @@ class User(DictableColumn, db.Model):
     
     ## Class CRUD Methods
     @classmethod
-    def create(cls, email: str, password: str, username: str):
+    def create(cls, email: str, password: str, username: str) -> 'User':
         """Create and return a new user."""
         return cls(email=email, password=password, username=username)
     
@@ -42,18 +44,18 @@ class User(DictableColumn, db.Model):
         return cls.query.all()
     
     @classmethod
-    def get_by_id(cls, id):
+    def get_by_id(cls, id: int) -> 'User':
         return cls.query.get(id)
     
     @classmethod
-    def get_by_username(cls, username):
+    def get_by_username(cls, username: str) -> 'User':
         try:
             return cls.query.filter_by(username=username).one()
         except:
             return None 
     
     @classmethod
-    def get_by_email(cls, email):
+    def get_by_email(cls, email: str) -> 'User':
         try:
             return cls.query.filter_by(email=email).one()
         except:
@@ -87,26 +89,20 @@ class Recipe(DictableColumn, db.Model):
 
     ## Class CRUD Methods
     @classmethod
-    def create(cls, owner, modified_on, is_public=True, source_url=None, forked_from=None):
+    def create(cls, owner: User, modified_on: datetime, is_public: bool = True, 
+               source_url: str = None, forked_from=None) -> 'Recipe':
         """Create and return a new recipe."""
         return cls(owner=owner, last_modified=modified_on, 
                    is_public=is_public, source_url=source_url, forked_from=forked_from)
     
     @classmethod
-    def get_by_id(cls, id):
+    def get_by_id(cls, id: int) -> 'Recipe':
         return cls.query.get(id)
 
     # instance methods
-    def update_last_modified(self, modified_date) -> None:
+    def update_last_modified(self, modified_date: datetime) -> None:
         self.last_modified = modified_date
     
-    # @classmethod
-    # def createNew(cls, owner, modified_on, is_public=True, source_url=None, forked_from=None,
-    #               ):
-    #     """Create and return a new recipe, with associated first edit"""
-    #     this_recipe = cls(owner=owner, last_modified=modified_on, 
-    #                is_public=is_public, source_url=source_url, forked_from=forked_from)
-    #     first_edit = Edit.create()
 
 # Experiments
 class Experiment(DictableColumn, db.Model):
@@ -128,6 +124,7 @@ class Experiment(DictableColumn, db.Model):
     # Relationships
     recipe = db.relationship('Recipe', back_populates='experiments') # one corresponsding Recipe object
 
+    # misc class variable
     htmlclass = 'experiment'
 
     # Class Methods
@@ -144,7 +141,7 @@ class Experiment(DictableColumn, db.Model):
                    create_date=create_date, commit_by=commit_by)
     
     @classmethod
-    def get_by_id(cls, id):
+    def get_by_id(cls, id: int) -> 'Experiment':
         return cls.query.get(id)
 
 # Edits
@@ -157,7 +154,6 @@ class Edit(DictableColumn, db.Model):
     id = db.Column(db.Integer, autoincrement=True, primary_key=True)
     recipe_id = db.Column(db.Integer, db.ForeignKey('recipes.id'))
     title = db.Column(db.String)
-    # diff_title
     description = db.Column(db.String)
     ingredients = db.Column(db.Text)
     instructions = db.Column(db.Text)
@@ -169,6 +165,7 @@ class Edit(DictableColumn, db.Model):
     # Relationships
     recipe = db.relationship('Recipe', back_populates='edits') # one corresponding Recipe object
 
+    # misc class variable
     htmlclass = 'edit'
 
     # Class Methods
@@ -177,19 +174,19 @@ class Edit(DictableColumn, db.Model):
     
     ## Class CRUD Methods
     @classmethod
-    def create(cls, recipe, title, desc, ingredients, 
-               instructions, commit_date, commit_by=None):
+    def create(cls, recipe: Recipe, title: str, desc: str, ingredients: str, 
+               instructions: str, commit_date: datetime, commit_by=None) -> 'Edit':
         return cls(recipe=recipe, title=title, description=desc,
                    ingredients=ingredients, instructions=instructions,
                    commit_date=commit_date, commit_by=commit_by)
     
     @classmethod
-    def get_by_id(cls, id):
+    def get_by_id(cls, id: int) -> 'Edit':
         return cls.query.get(id)
     
     # instance method
     ## get the previous edit object to this one. or None if it is the creation edit
-    def get_previous(self):
+    def get_previous(self) -> 'Edit':
         edits_list = self.recipe.edits
         return None if edits_list[-1] == self else edits_list[edits_list.index(self) + 1]
 
