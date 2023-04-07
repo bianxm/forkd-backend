@@ -19,9 +19,9 @@
     </li>
     {% endif %}
     {% for item in timeline_items[:-1] | sort(attribute='commit_date', reverse=True) %}
-    <li><a class="timeline-item {{item.htmlclass}}" id="{{item.id}}">{{item}}</a></li>
+    <li><button class="timeline-item {{item.htmlclass}}" id="{{item.id}}">{{item}}</button></li>
     {% endfor %}
-    <li><a class="timeline-item createEdit" id="{{timeline_items[-1].id}}">Recipe created</li>
+    <li><button class="timeline-item createEdit" id="{{timeline_items[-1].id}}">Recipe created</button></li>
 </ul>
 {% endblock %}
 {% block after_body %}
