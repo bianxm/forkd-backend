@@ -71,17 +71,18 @@ class Recipe(DictableColumn, db.Model):
     id = db.Column(db.Integer, autoincrement=True, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     source_url = db.Column(db.String)
-    ## should we put last modified date here?? or query?
     last_modified = db.Column(db.DateTime)
 
     ## 2.0 or stretch features
-    forked_from = db.Column(db.Integer)
+    forked_from = db.Column(db.Integer, db.ForeignKey('recipes.id'))
+    # forked_from = db.Column(db.Integer, db.ForeignKey('edits.id'))
     is_public = db.Column(db.Boolean)
 
     # Relationships
     owner = db.relationship('User', back_populates='recipes') # one corresponding User object
     experiments = db.relationship('Experiment', back_populates='recipe', order_by='desc(Experiment.commit_date)') # list of corresponding Experiment objects
     edits = db.relationship('Edit', back_populates='recipe', order_by='desc(Edit.commit_date)') # list of corresponding Edit objects
+    parent = db.relationship('Recipe', backref='children', remote_side=[id])
 
     # Class Methods
     def __repr__(self):
