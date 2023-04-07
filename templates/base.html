@@ -15,13 +15,13 @@
         </style>
     </head>
     <body>
-        {% if session.get('user_id') %}
         <div class="container">
         <a href="/">Forked Home</a><br>
+        {% if session.get('user_id') %}
         Hi <a href="/{{session.get('username')}}">{{session.get('username')}}</a>
         <a role="button" class="btn btn-primary" href="/logout">Log out</a>
-        </div>
         {% endif %}
+        </div>
         <div class="container">
         {% for category, msg in get_flashed_messages(with_categories=True) %}
             <div class="alert alert-{{category}} alert-dismissible" role="alert">

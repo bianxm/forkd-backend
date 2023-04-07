@@ -6,7 +6,7 @@ An app where users can save, record 'experiments', and track edits for recipes
 
 - [JSDiff](https://github.com/kpdecker/jsdiff) to get diffs
 - [Diff2HTML](https://github.com/rtfpessoa/diff2html) to display diffs
-- (2.0 goal) [Spoonacular API](https://spoonacular.com/food-api) 
+- [Spoonacular API](https://spoonacular.com/food-api) 
 - (stretch goal) [Mergely](https://www.mergely.com/) for real-time diff highlighting
 
 ## Data Model
@@ -36,7 +36,7 @@ An app where users can save, record 'experiments', and track edits for recipes
 ### 2.0
 
 - [ ] Fork a different user's recipe (that you can then add your own experiments to)
-- [ ] Spoonacular API: Get a recipe from the internet
+- [x] Spoonacular API: Get a recipe from the internet
 - [ ] Add an experiment plan -- something to change, with results to be put in later
 
 ### Nice-to-haves
