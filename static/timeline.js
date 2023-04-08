@@ -15,7 +15,7 @@ function expandItem(evt){
             .then((edit_data) => {
                 const {curr, prev} = edit_data;
                 const expDiv = document.createElement('div');
-                expDiv.classList.add('newline');
+                // expDiv.classList.add('newline');
                 // for each of title, desc, ingredients, instructions
                 for(const attr of ['title', 'description','ingredients','instructions']){
                     // check if it changed. if yes:
