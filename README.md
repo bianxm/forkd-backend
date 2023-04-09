@@ -35,7 +35,7 @@ An app where users can save, record 'experiments', and track edits for recipes
 
 ### 2.0
 
-- [ ] Fork a different user's recipe (that you can then add your own experiments to)
+- [x] Fork a different user's recipe (that you can then add your own experiments to)
 - [x] Spoonacular API: Get a recipe from the internet
 - [ ] Add an experiment plan -- something to change, with results to be put in later
 

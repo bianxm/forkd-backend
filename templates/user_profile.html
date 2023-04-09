@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}{{user.username}}{% endblock %}
 {% block body %}
+<div class="container">
 <h1>{{user.username}}</h1>
 {% if session.get('user_id') == user.id %}
 <a href="/newRecipe">+ Add a new recipe</a>
@@ -12,4 +13,5 @@
     </a></li>
     {% endfor %}
 </ul>
+</div>
 {% endblock %}

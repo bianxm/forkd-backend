@@ -1,10 +1,12 @@
 {% extends 'base.html' %}
 {% block title %}Forkd: All users{% endblock %}
 {% block body %}
+<div class="container">
 <h1>All registered users</h1>
 <ul>
     {% for user in all_users %}
     <li><a href="/{{user.username}}">{{user.username}}</a></li>
     {% endfor %}
 </ul>
+</div>
 {% endblock %}

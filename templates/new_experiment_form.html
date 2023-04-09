@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Add New Experiment{% endblock %}
 {% block body %}
+<div class="container">
 <h1>Add a new experiment to {{recipe.edits[0].title}}</h1>
 <div class="container">
 <form action="/newExp" method="POST" role='form'>
@@ -15,5 +16,6 @@
     <input type="hidden" name="recipe_id" value="{{recipe.id}}"/>
     <button type="submit" class="btn btn-primary">Submit</button>
 </form>
+</div>
 </div>
 {% endblock %}

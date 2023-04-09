@@ -29,8 +29,16 @@ def show_all_users():
     all_users = model.User.get_all()
     return render_template('all_users.html', all_users=all_users)
 
+@app.route('/signup')
+def show_signup_form():
+    return render_template('signup.html')
+
+@app.route('/login')
+def show_login_form():
+    return render_template('login.html')
+
 # Sign Up
-@app.route('/users', methods=['POST'])
+@app.route('/signup', methods=['POST'])
 def register_user():
     # parse out POST params 
     given_email = request.form.get('email')

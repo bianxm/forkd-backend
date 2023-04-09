@@ -15,13 +15,50 @@
         </style>
     </head>
     <body>
-        <div class="container">
+        <nav class="navbar navbar-expand-lg bg-body-tertiary">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="/">Forkd.</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarTogglerDemo02" aria-controls="navbarTogglerDemo02" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarTogglerDemo02">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                        <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="/">Home</a>
+                        </li>
+                        <li class="nav-item">
+                        <a class="nav-link" href="/users">All Users</a>
+                        </li>
+                    </ul>
+                    <div class="d-flex">
+                        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                            {% if session.get('user_id') %}
+                            <li class="nav-item">
+                            <a class="nav-link active" href="/{{session.get('username')}}">{{session.get('username')}}</a>
+                            </li>
+                            <li class="nav-item">
+                            <a role="button" class="nav-link btn btn-primary" href="/logout">Logout</a>
+                            </li>
+                            {% else %}
+                            <li class="nav-item">
+                            <a role="button" class="nav-link active btn btn-primary" href="/login">Log In</a>
+                            </li>
+                            <li class="nav-item">
+                            <a role="button" class="nav-link btn btn-primary" href="/signup">Sign Up</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+    </nav>
+        <!-- <div class="container">
         <a href="/">Forked Home</a><br>
         {% if session.get('user_id') %}
         Hi <a href="/{{session.get('username')}}">{{session.get('username')}}</a>
         <a role="button" class="btn btn-primary" href="/logout">Log out</a>
         {% endif %}
-        </div>
+        </div> -->
         <div class="container">
         {% for category, msg in get_flashed_messages(with_categories=True) %}
             <div class="alert alert-{{category}} alert-dismissible" role="alert">

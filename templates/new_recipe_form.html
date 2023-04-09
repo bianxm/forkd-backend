@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
 {% block title %}Add New Recipe{% endblock %}
 {% block body %}
+<div class="container">
 <h1>Add a new recipe</h1>
 <h2>Retrieve from a url</h2>
-<div class="container">
     <form id="urlForm">
         <div class="mb-3">
             <label for="givenUrl" class="form-label">URL</label>
@@ -11,9 +11,7 @@
         </div>
     <button type="submit" class="btn btn-primary">Submit</button>
     </form>
-</div>
 <h2>...from scratch:</h2>
-<div class="container">
 <form action="/newRecipe" method="POST" role='form' id="recipeForm">
 <div class="mb-3">
     <label for="title" class="form-label">Title</label>

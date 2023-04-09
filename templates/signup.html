@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}Forkd{% endblock %}
+{% block body %}
+{% if not session.get('user_id') %}
+<div class="container">
+<h2>Sign Up</h2>
+<form action="/signup" method="POST" role='form'>
+  <div class="mb-3">
+    <label for="email" class="form-label">Email address</label>
+    <input type="email" class="form-control" name="email">
+  </div>
+  <div class="mb-3">
+    <label for="username" class="form-label">Username</label>
+    <input type="text" class="form-control" name="username">
+  </div>
+  <div class="mb-3">
+    <label for="password" class="form-label">Password</label>
+    <input type="password" class="form-control" name="password">
+  </div>
+  <div class="mb-3">
+    <label for="confirmPassword" class="form-label">Confirm Password</label>
+    <input type="password" class="form-control" name="confirmPassword">
+  </div>
+  <button type="submit" class="btn btn-primary">Submit</button>
+</form>
+</div>
+{% else %}
+<p>Hi {{session.get('username')}}</p>
+{% endif %}
+{% endblock %}
