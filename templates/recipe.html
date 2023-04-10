@@ -42,7 +42,8 @@
         {{item}}
         </button>
     </h2>
-    <div id="{{item.id}}" class="accordion-collapse collapse timeline-item-details {{item.htmlclass}}">
+    <div id="{{item.id}}" class="accordion-collapse collapse timeline-item-details {{item.htmlclass}} 
+    {% if session.get('user_id') == owner.id %}logged-in{% endif %}">
     </div>
     </div>
     {% endfor %}

@@ -1,5 +1,18 @@
 'use strict';
 
+const add_delete_button = (expDiv, item) => {
+    // if logged in, add a delete button
+    if(item.classList.contains('logged-in')){
+        const delete_button = document.createElement('a');
+        delete_button.text='Delete';
+        delete_button.setAttribute('class', 'btn btn-outline-danger');
+        delete_button.setAttribute('role','button');
+        expDiv.appendChild(delete_button);
+        // expDiv.insertAdjacentHTML('afterend',
+        // '<a role="button" class="btn btn-outline-danger">Delete</a>');
+    }
+};
+
 function expandItem(evt){
     const item = evt.target;
     
@@ -36,7 +49,7 @@ function expandItem(evt){
                         expDiv.insertAdjacentHTML('beforeend', `<div>${this_diff2Html}</div>`)
                     }
                 }
-                // and then insert div 
+                add_delete_button(expDiv, item);
                 item.appendChild(expDiv);
             });
     }
@@ -54,8 +67,10 @@ function expandItem(evt){
                 expDiv.insertAdjacentHTML('beforeend', `<h3>${exp_data['commit_msg']}</h3>`)
                 expDiv.insertAdjacentHTML('beforeend', `<p>(${exp_data['commit_date']})</p>`)
                 expDiv.insertAdjacentHTML('beforeend', `<p>${exp_data['notes']}</p>`)
+                // item.appendChild(expDiv);
+                // console.log(item);
+                add_delete_button(expDiv, item);
                 item.appendChild(expDiv);
-                console.log(item);
             });
     }
     
@@ -71,9 +86,12 @@ function expandItem(evt){
                 expDiv.insertAdjacentHTML('beforeend', `<p>${curr['description']}</p>`)
                 expDiv.insertAdjacentHTML('beforeend', `<p>${curr['ingredients']}</p>`)
                 expDiv.insertAdjacentHTML('beforeend', `<p>${curr['instructions']}</p>`)
+                add_delete_button(expDiv, item);
                 item.appendChild(expDiv);
+                
             });
     };
+    
 }
 
 const timelineItems = document.querySelectorAll('.timeline-item-details');

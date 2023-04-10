@@ -1,6 +1,23 @@
 {% extends 'base.html' %}
 {% block title %}{{user.username}}{% endblock %}
 {% block body %}
+<style>
+    #delete-recipe {
+        visibility: hidden;
+        opacity: 0;
+        transition: visibility 0s, opacity 0.5s liner;
+    }
+    /* .list-group-item-action:hover > #delete-recipe { */
+    .list-group-item-action:hover > span > #delete-recipe {
+        visibility:visible;
+        opacity:1;
+        z-index: 22000;
+    }
+    .list-group-item > a {
+        text-decoration: none;
+    }
+</style>
+
 <div class="container">
 <h1>{{user.username}}</h1>
 {% if session.get('user_id') == user.id %}
@@ -8,14 +25,29 @@
 {% endif %}
 <div class="list-group">
     {% for recipe in user.recipes %}
-    <a href="/{{user.username}}/{{recipe.id}}" 
+    <!-- <a href="/{{user.username}}/{{recipe.id}}" 
     class="list-group-item list-group-item-action">
-    <div class="d-flex w-100 justify-content-between">
-        <h5>{{recipe.edits[0].title}}</h5>
-        <small>{{recipe.edits[0].commit_date}}</small>
-    </div>
-    <p class="mb-1 text-truncate">{{recipe.edits[0].description}}</p>
+{% if session.get('user_id') == user.id %}
+        <span id="delete-recipe" class="position-absolute top-50 end-0 translate-middle-y"><button  class="btn btn-danger" type="button" href="/"><i class="bi-trash"></i></button></span>
+{% endif %}
+        <div class="d-flex w-100 justify-content-between">
+            <h5>{{recipe.edits[0].title}}</h5>
+            <small>{{recipe.edits[0].commit_date}}</small>
+        </div>
+        <p class="mb-1 text-truncate">{{recipe.edits[0].description}}</p>
+    </a> -->
+    <li class="list-group-item list-group-item-action position-relative">
+{% if session.get('user_id') == user.id %}
+        <span class="position-absolute top-50 end-0 translate-middle-y"><a id="delete-recipe" class="btn btn-outline-danger" role="button" href="/"><i class="bi-trash"></i></a></span>
+{% endif %}
+    <a class="text-body" href="/{{user.username}}/{{recipe.id}}" >
+        <div class="d-flex w-100 justify-content-between">
+            <h5>{{recipe.edits[0].title}}</h5>
+            <small>{{recipe.edits[0].commit_date}}</small>
+        </div>
+        <p class="mb-1 text-truncate">{{recipe.edits[0].description}}</p>
     </a>
+    </li>
     {% endfor %}
 </div>
 </div>
