@@ -7,6 +7,9 @@ const add_delete_button = (expDiv, item) => {
         delete_button.text='Delete';
         delete_button.setAttribute('class', 'btn btn-outline-danger');
         delete_button.setAttribute('role','button');
+        delete_button.setAttribute('type','button');
+        delete_button.setAttribute('data-bs-toggle','modal');
+        delete_button.setAttribute('data-bs-target','#confirm-item-delete-modal');
         expDiv.appendChild(delete_button);
         // expDiv.insertAdjacentHTML('afterend',
         // '<a role="button" class="btn btn-outline-danger">Delete</a>');

@@ -25,20 +25,10 @@
 {% endif %}
 <div class="list-group">
     {% for recipe in user.recipes %}
-    <!-- <a href="/{{user.username}}/{{recipe.id}}" 
-    class="list-group-item list-group-item-action">
-{% if session.get('user_id') == user.id %}
-        <span id="delete-recipe" class="position-absolute top-50 end-0 translate-middle-y"><button  class="btn btn-danger" type="button" href="/"><i class="bi-trash"></i></button></span>
-{% endif %}
-        <div class="d-flex w-100 justify-content-between">
-            <h5>{{recipe.edits[0].title}}</h5>
-            <small>{{recipe.edits[0].commit_date}}</small>
-        </div>
-        <p class="mb-1 text-truncate">{{recipe.edits[0].description}}</p>
-    </a> -->
     <li class="list-group-item list-group-item-action position-relative">
 {% if session.get('user_id') == user.id %}
-        <span class="position-absolute top-50 end-0 translate-middle-y"><a id="delete-recipe" class="btn btn-outline-danger" role="button" href="/"><i class="bi-trash"></i></a></span>
+        <span class="position-absolute top-50 end-0 translate-middle-y">
+            <button id="delete-recipe" class="btn btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#confirm-recipe-delete-modal"><i class="bi-trash"></i></button></span>
 {% endif %}
     <a class="text-body" href="/{{user.username}}/{{recipe.id}}" >
         <div class="d-flex w-100 justify-content-between">
@@ -50,5 +40,21 @@
     </li>
     {% endfor %}
 </div>
+</div>
+<!-- Modal -->
+<div class="modal fade" id="confirm-recipe-delete-modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1>Delete the recipe</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">This will delete this recipe and <strong>all related edits and experiments</strong>. <br /><strong>It cannot be undone.</strong><br/>Are you sure you want to delete this recipe?</div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger">Delete</button>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
