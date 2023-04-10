@@ -80,8 +80,8 @@ class Recipe(DictableColumn, db.Model):
 
     # Relationships
     owner = db.relationship('User', back_populates='recipes') # one corresponding User object
-    experiments = db.relationship('Experiment', back_populates='recipe', order_by='desc(Experiment.commit_date)') # list of corresponding Experiment objects
-    edits = db.relationship('Edit', back_populates='recipe', order_by='desc(Edit.commit_date)') # list of corresponding Edit objects
+    experiments = db.relationship('Experiment', back_populates='recipe', order_by='desc(Experiment.commit_date)', cascade='save-update, merge, delete') # list of corresponding Experiment objects
+    edits = db.relationship('Edit', back_populates='recipe', order_by='desc(Edit.commit_date)', cascade='save-update, merge, delete') # list of corresponding Edit objects
     parent = db.relationship('Recipe', backref='children', remote_side=[id])
 
     # Class Methods

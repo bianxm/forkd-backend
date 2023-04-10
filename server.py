@@ -254,10 +254,33 @@ def experiment_details(id):
     # return in json
     return this_experiment.to_dict()
 
+@app.route('/api/<username>/<id>', methods=['DELETE'])
+def delete_recipe(username, id):
+    # get experiment from server by id
+    this_recipe = model.Recipe.get_by_id(id)
+
+    # check if sender is allowed to delete
+    if username != this_recipe.owner.username:
+        return make_response('User not authorized', 403)
+    
+    # delete experiment
+    try:
+        db.session.delete(this_recipe)
+        db.session.commit()
+        flash('Recipe deleted','success')
+        return make_response('Experiment deleted', 204)
+    except:
+        # return error message
+        return make_response('Server error', 500)
+
 @app.route('/api/experiment/<id>', methods=['DELETE'])
 def delete_experiment(id):
     # get experiment from server by id
     this_experiment = model.Experiment.get_by_id(id)
+
+    # check if sender is allowed to delete
+    if session.get('user_id') != this_experiment.recipe.user_id:
+        return make_response('User not authorized', 403)
     
     # delete experiment
     try:
@@ -285,6 +308,10 @@ def delete_edit(id):
     # check that it isn't the first edit
     if this_edit == this_edit.recipe.edits[-1]:
         return make_response('Server error', 500)
+    
+    # check if sender is allowed to delete
+    if session.get('user_id') != this_edit.recipe.user_id:
+        return make_response('User not authorized', 403)
     
     # delete experiment
     try:

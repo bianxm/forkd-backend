@@ -19,16 +19,37 @@ const add_delete_button = (expDiv, item) => {
 };
 
 document.querySelector('#confirm-item-delete-modal').addEventListener('show.bs.modal', (evt)=>{
-    const confirmDeleteButton = document.querySelector('.modal-footer > .btn-danger');
+    const confirmDeleteButton = document.querySelector('#delete-item');
     confirmDeleteButton.href = evt.relatedTarget.getAttribute('data-bs-href');
     console.log(evt.relatedTarget.getAttribute('data-bs-href'));
 });
 
-document.querySelector('.modal-footer > .btn-danger').addEventListener('click', (evt) => {
-    const url = evt.target.href;
-    fetch(url, {method:'DELETE'})
-        .then(() => window.location.reload());
+document.querySelector('#confirm-recipe-delete-modal').addEventListener('show.bs.modal', (evt)=>{
+    const confirmDeleteButton = document.querySelector('#delete-recipe');
+    confirmDeleteButton.href = evt.relatedTarget.getAttribute('data-bs-href');
+    console.log(evt.relatedTarget.getAttribute('data-bs-href'));
 });
+
+[...document.querySelectorAll('.modal-footer > .btn-danger')].map(this_button => {
+    this_button.addEventListener('click', (evt) => {
+    const url = evt.target.href;
+    console.log(url);
+    fetch(url, {method:'DELETE'})
+        .then(() => {
+            if(this_button.id==='delete-item') window.location.reload();
+            else if(this_button.id==='delete-recipe'){
+                const username = this_button.getAttribute('data-bs-username');
+                window.location.replace(`/${username}`);}
+        });
+});
+    });
+
+//     addEventListener('click', (evt) => {
+//     const url = evt.target.href;
+//     console.log(url);
+//     // fetch(url, {method:'DELETE'})
+//     //     .then(() => window.location.reload());
+// });
 
 function expandItem(evt){
     const item = evt.target;

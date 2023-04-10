@@ -28,7 +28,10 @@
     <li class="list-group-item list-group-item-action position-relative">
 {% if session.get('user_id') == user.id %}
         <span class="position-absolute top-50 end-0 translate-middle-y">
-            <button id="delete-recipe" class="btn btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#confirm-recipe-delete-modal"><i class="bi-trash"></i></button></span>
+            <button id="delete-recipe" class="btn btn-outline-danger" type="button" 
+            data-bs-toggle="modal" data-bs-target="#confirm-recipe-delete-modal" data-bs-href="/api/{{user.username}}/{{recipe.id}}">
+                <i class="bi-trash"></i>
+            </button></span>
 {% endif %}
     <a class="text-body" href="/{{user.username}}/{{recipe.id}}" >
         <div class="d-flex w-100 justify-content-between">
@@ -60,6 +63,16 @@
 {% endblock %}
 {% block after_body %}
 <script>
+document.querySelector('#confirm-recipe-delete-modal').addEventListener('show.bs.modal', (evt)=>{
+    const confirmDeleteButton = document.querySelector('.modal-footer > .btn-danger');
+    confirmDeleteButton.href = evt.relatedTarget.getAttribute('data-bs-href');
+    console.log(evt.relatedTarget.getAttribute('data-bs-href'));
+});
 
+document.querySelector('.modal-footer > .btn-danger').addEventListener('click', (evt) => {
+    const url = evt.target.href;
+    fetch(url, {method:'DELETE'})
+        .then(() => window.location.reload());
+});
 </script>
 {% endblock %}
