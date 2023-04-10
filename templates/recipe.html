@@ -3,9 +3,8 @@
 {% block body %}
 <div class="container">
 <h1>{{recipe.edits[0].title}}</h1>
+<div class="d-flex justify-content-between">
 <h4>- {{owner.username}}</h4>
-<!--  if session.get('user_id') You can fork your own recipe, it's fine
- and owner.id != session.get('user_id')  -->
 {% if session.get('user_id') %} 
 <form action="/newRecipe" method="POST" id="recipeForm">
     <input type="hidden" id="title" name="title" value="{{recipe.edits[0].title}}">
@@ -15,27 +14,34 @@
     <input type="hidden" name="forked-from" value="{{recipe.id}}"/>
     <button id="fork" type="submit" class="btn btn-secondary">Fork this recipe!</button>
 </form>
+</div>
 {% endif %}
+<div class="row">
+<div class="col-md-7">
+<h2>Description</h2>
 <div class="newline">{{recipe.edits[0].description}}</div>
 <h2>Ingredients</h2>
 <div class="newline">{{recipe.edits[0].ingredients}}</div>
 <h2>Instructions</h2>
 <div class="newline">{{recipe.edits[0].instructions}}</div>
+</div>
+<div class="col-md-5">
 <h2>Timeline</h2>
     {% if session.get('user_id') == owner.id %}
-    <ul>
+    <!-- <ul>
     <li>
-        <a id="add-experiment" href='/newExp?recipe={{recipe.id}}'>Add an experiment</a> 
     </li>
     <li>
-        <a id="add-edit" href='/newEdit?recipe={{recipe.id}}'>Add an edit</a> 
     </li>
-    </ul>
+    </ul> -->
+    <div class="btn-group" role="group">
+        <button type="button" class="btn btn-outline-secondary" id="add-experiment" href='/newExp?recipe={{recipe.id}}'>Add an experiment</button> 
+        <button type="button" class="btn btn-outline-secondary" id="add-edit" href='/newEdit?recipe={{recipe.id}}'>Add an edit</button> 
+    </div>
     {% endif %}
     <div class="accordion" id="timeline">
     {% for item in timeline_items[:-1] | sort(attribute='commit_date', reverse=True) %}
     <div class="accordion-item">
-    <!-- <li><button class="timeline-item {{item.htmlclass}}" id="{{item.id}}">{{item}}</button></li> -->
     <h2 class="accordion-header">
         <button class="accordion-button collapsed timeline-item" id="{{item.id}}_button" type="button" 
         data-bs-toggle="collapse" data-bs-target="#{{item.id}}">
@@ -55,6 +61,8 @@
         </h2>
     <div id="{{timeline_items[-1].id}}" class="accordion-collapse collapse timeline-item-details createEdit"></div>
     </div>
+</div>
+</div>
 </div>
 {% endblock %}
 {% block after_body %}
