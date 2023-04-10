@@ -28,12 +28,6 @@
 <div class="col-md-5">
 <h2>Timeline</h2>
     {% if session.get('user_id') == owner.id %}
-    <!-- <ul>
-    <li>
-    </li>
-    <li>
-    </li>
-    </ul> -->
     <div class="btn-group" role="group">
         <button type="button" class="btn btn-outline-secondary" id="add-experiment" href='/newExp?recipe={{recipe.id}}'>Add an experiment</button> 
         <button type="button" class="btn btn-outline-secondary" id="add-edit" href='/newEdit?recipe={{recipe.id}}'>Add an edit</button> 

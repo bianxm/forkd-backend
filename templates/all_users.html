@@ -3,10 +3,16 @@
 {% block body %}
 <div class="container">
 <h1>All registered users</h1>
-<ul>
+<!-- <ul>
     {% for user in all_users %}
     <li><a href="/{{user.username}}">{{user.username}}</a></li>
     {% endfor %}
-</ul>
+</ul> -->
+<div class="list-group">
+    {% for user in all_users %}
+    <a href="/{{user.username}}"
+    class="list-group-item list-group-item-action">{{user.username}}</a>
+    {% endfor %}
+</div>
 </div>
 {% endblock %}
