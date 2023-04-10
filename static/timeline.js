@@ -2,7 +2,12 @@
 
 function expandItem(evt){
     const item = evt.target;
-    item.disabled = true;
+    
+    // if details were already loaded before, no need to load again!
+    if(item.children.length !== 0) return; 
+    
+    const expDiv = document.createElement('div');
+    expDiv.classList.add('accordion-body');
 
     // check if edit or experiment
     if(item.classList.contains('edit')){
@@ -14,8 +19,6 @@ function expandItem(evt){
             .then((response) => response.json())
             .then((edit_data) => {
                 const {curr, prev} = edit_data;
-                const expDiv = document.createElement('div');
-                // expDiv.classList.add('newline');
                 // for each of title, desc, ingredients, instructions
                 for(const attr of ['title', 'description','ingredients','instructions']){
                     // check if it changed. if yes:
@@ -34,7 +37,7 @@ function expandItem(evt){
                     }
                 }
                 // and then insert div 
-                item.insertAdjacentElement('afterend', expDiv);
+                item.appendChild(expDiv);
             });
     }
     
@@ -46,14 +49,13 @@ function expandItem(evt){
         fetch(`/api/experiment/${item.id}`)
             .then((response) => response.json())
             .then((exp_data) => {
-                // console.log(exp_data);
                 // insert experiment data in new div
-                const expDiv = document.createElement('div');
-                expDiv.classList.add('newline');
+                expDiv.classList.add('newline'); // formatting issues
                 expDiv.insertAdjacentHTML('beforeend', `<h3>${exp_data['commit_msg']}</h3>`)
                 expDiv.insertAdjacentHTML('beforeend', `<p>(${exp_data['commit_date']})</p>`)
                 expDiv.insertAdjacentHTML('beforeend', `<p>${exp_data['notes']}</p>`)
-                item.insertAdjacentElement('afterend', expDiv);
+                item.appendChild(expDiv);
+                console.log(item);
             });
     }
     
@@ -69,12 +71,12 @@ function expandItem(evt){
                 expDiv.insertAdjacentHTML('beforeend', `<p>${curr['description']}</p>`)
                 expDiv.insertAdjacentHTML('beforeend', `<p>${curr['ingredients']}</p>`)
                 expDiv.insertAdjacentHTML('beforeend', `<p>${curr['instructions']}</p>`)
-                item.insertAdjacentElement('afterend', expDiv);
+                item.appendChild(expDiv);
             });
     };
 }
 
-const timelineItems = document.querySelectorAll('.timeline-item');
+const timelineItems = document.querySelectorAll('.timeline-item-details');
 for(const timelineItem of timelineItems){
-    timelineItem.addEventListener('click', expandItem)
+    timelineItem.addEventListener('show.bs.collapse', expandItem)
 }

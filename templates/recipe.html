@@ -13,7 +13,7 @@
     <input type="hidden" id="ingredients" name="ingredients" value="{{recipe.edits[0].ingredients}}">
     <input type="hidden" id="instructions" name="instructions" value="{{recipe.edits[0].instructions}}">
     <input type="hidden" name="forked-from" value="{{recipe.id}}"/>
-    <button id="fork">Fork this recipe!</button>
+    <button id="fork" type="submit" class="btn btn-secondary">Fork this recipe!</button>
 </form>
 {% endif %}
 <div class="newline">{{recipe.edits[0].description}}</div>
@@ -22,20 +22,39 @@
 <h2>Instructions</h2>
 <div class="newline">{{recipe.edits[0].instructions}}</div>
 <h2>Timeline</h2>
-<ul>
     {% if session.get('user_id') == owner.id %}
+    <ul>
     <li>
         <a id="add-experiment" href='/newExp?recipe={{recipe.id}}'>Add an experiment</a> 
     </li>
     <li>
         <a id="add-edit" href='/newEdit?recipe={{recipe.id}}'>Add an edit</a> 
     </li>
+    </ul>
     {% endif %}
+    <div class="accordion" id="timeline">
     {% for item in timeline_items[:-1] | sort(attribute='commit_date', reverse=True) %}
-    <li><button class="timeline-item {{item.htmlclass}}" id="{{item.id}}">{{item}}</button></li>
+    <div class="accordion-item">
+    <!-- <li><button class="timeline-item {{item.htmlclass}}" id="{{item.id}}">{{item}}</button></li> -->
+    <h2 class="accordion-header">
+        <button class="accordion-button collapsed timeline-item" id="{{item.id}}_button" type="button" 
+        data-bs-toggle="collapse" data-bs-target="#{{item.id}}">
+        {{item}}
+        </button>
+    </h2>
+    <div id="{{item.id}}" class="accordion-collapse collapse timeline-item-details {{item.htmlclass}}">
+    </div>
+    </div>
     {% endfor %}
-    <li><button class="timeline-item createEdit" id="{{timeline_items[-1].id}}">Recipe created</button></li>
-</ul>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed timeline-item" id="{{timeline_items[-1].id}}_button" type="button" 
+            data-bs-toggle="collapse" data-bs-target="#{{timeline_items[-1].id}}">
+            Recipe Created {{timeline_items[-1].commit_date}}
+            </button>
+        </h2>
+    <div id="{{timeline_items[-1].id}}" class="accordion-collapse collapse timeline-item-details createEdit"></div>
+    </div>
 </div>
 {% endblock %}
 {% block after_body %}
