@@ -146,6 +146,13 @@ def submit_new_recipe():
 def new_exp_form():
     parent_recipe_id = request.args.get('recipe')
     this_recipe = model.Recipe.get_by_id(parent_recipe_id)
+    
+    # check that submitter is allowed to add a new experiment to given recipe
+    # (will punt this off to helper once permissions get more complex)
+    if this_recipe.owner.id != session.get('user_id'):
+        flash('You are not allowed to add an experiment to that recipe!', 'danger')
+        return render_template('404.html')
+    
     return render_template('new_experiment_form.html',recipe=this_recipe)
 
 @app.route('/newExp', methods=['POST'])
@@ -156,6 +163,11 @@ def submit_new_exp():
     recipe_id = request.form.get('recipe_id')
     now = datetime.now()
     this_recipe = model.Recipe.get_by_id(recipe_id)
+
+    # check that submitter is allowed to add a new experiment to given recipe
+    if this_recipe.owner.id != session.get('user_id'):
+        flash('You are not allowed to add an experiment to that recipe!','danger')
+        return render_template('404.html')
     
     # db changes
     new_experiment = model.Experiment.create(this_recipe, commit_msg, notes, now) # create experiment
@@ -169,6 +181,13 @@ def submit_new_exp():
 def new_edit_form():
     parent_recipe_id = request.args.get('recipe')
     this_recipe = model.Recipe.get_by_id(parent_recipe_id)
+    
+    # check that submitter is allowed to add a new edit to given recipe
+    # (will punt this off to helper once permissions get more complex)
+    if this_recipe.owner.id != session.get('user_id'):
+        flash('You are not allowed to add an edit to that recipe!','danger')
+        return render_template('404.html')
+    
     return render_template('new_edit_form.html',recipe=this_recipe)
 
 @app.route('/newEdit', methods=['POST'])
@@ -182,6 +201,11 @@ def submit_new_edit():
     now = datetime.now()
     this_recipe = model.Recipe.get_by_id(recipe_id)
     
+    # check that submitter is allowed to add a new edit to given recipe
+    if this_recipe.owner.id != session.get('user_id'):
+        flash('You are not allowed to add an edit to that recipe!', 'danger')
+        return render_template('404.html')
+
     # db changes
     new_edit = model.Edit.create(this_recipe,
                                  title, description,

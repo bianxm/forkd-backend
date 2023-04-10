@@ -29,8 +29,8 @@
 <h2>Timeline</h2>
     {% if session.get('user_id') == owner.id %}
     <div class="btn-group" role="group">
-        <button type="button" class="btn btn-outline-secondary" id="add-experiment" href='/newExp?recipe={{recipe.id}}'>Add an experiment</button> 
-        <button type="button" class="btn btn-outline-secondary" id="add-edit" href='/newEdit?recipe={{recipe.id}}'>Add an edit</button> 
+        <a role="button" class="btn btn-outline-secondary" id="add-experiment" href='/newExp?recipe={{recipe.id}}'>Add an experiment</a> 
+        <a role="button" class="btn btn-outline-secondary" id="add-edit" href='/newEdit?recipe={{recipe.id}}'>Add an edit</a> 
     </div>
     {% endif %}
     <div class="accordion" id="timeline">

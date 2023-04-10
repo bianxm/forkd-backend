@@ -4,7 +4,7 @@
 <div class="container">
 <h1>{{user.username}}</h1>
 {% if session.get('user_id') == user.id %}
-    <button hrf="/newRecipe" type="button" class="btn btn-secondary">+ Add a new recipe</button>
+    <a href="/newRecipe" role="button" class="btn btn-secondary">+ Add a new recipe</a>
 {% endif %}
 <div class="list-group">
     {% for recipe in user.recipes %}
