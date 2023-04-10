@@ -4,14 +4,20 @@
 <div class="container">
 <h1>{{user.username}}</h1>
 {% if session.get('user_id') == user.id %}
-<a href="/newRecipe">+ Add a new recipe</a>
+    <button hrf="/newRecipe" type="button" class="btn btn-secondary">+ Add a new recipe</button>
+<!-- <a href="/newRecipe">+ Add a new recipe</a> -->
 {% endif %}
-<ul>
+<div class="list-group">
     {% for recipe in user.recipes %}
-    <li><a href="/{{user.username}}/{{recipe.id}}">
-    {{recipe.edits[0].title}} - {{recipe.edits[0].description}} - {{recipe.edits[0].commit_date}}
-    </a></li>
+    <a href="/{{user.username}}/{{recipe.id}}" 
+    class="list-group-item list-group-item-action">
+    <div class="d-flex w-100 justify-content-between">
+        <h5>{{recipe.edits[0].title}}</h5>
+        <small>{{recipe.edits[0].commit_date}}</small>
+    </div>
+    <p class="mb-1 text-truncate">{{recipe.edits[0].description}}</p>
+    </a>
     {% endfor %}
-</ul>
+</div>
 </div>
 {% endblock %}
