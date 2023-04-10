@@ -2,7 +2,8 @@
 
 const add_delete_button = (expDiv, item) => {
     // if logged in, add a delete button
-    if(item.classList.contains('logged-in')){
+    // if(item.getAttribute('data-bs-auth') ==classList.contains('logged-in')){
+    if(item.getAttribute('data-bs-auth') =='logged-in'){
         const delete_button = document.createElement('a');
         delete_button.text='Delete';
         delete_button.setAttribute('class', 'btn btn-outline-danger');
@@ -10,11 +11,24 @@ const add_delete_button = (expDiv, item) => {
         delete_button.setAttribute('type','button');
         delete_button.setAttribute('data-bs-toggle','modal');
         delete_button.setAttribute('data-bs-target','#confirm-item-delete-modal');
+        // let delete_href = '';
+        // if item.classList.contains('')
+        delete_button.setAttribute('data-bs-href',`/api/${item.getAttribute('data-bs-item-type')}/${item.id}`);
         expDiv.appendChild(delete_button);
-        // expDiv.insertAdjacentHTML('afterend',
-        // '<a role="button" class="btn btn-outline-danger">Delete</a>');
     }
 };
+
+document.querySelector('#confirm-item-delete-modal').addEventListener('show.bs.modal', (evt)=>{
+    const confirmDeleteButton = document.querySelector('.modal-footer > .btn-danger');
+    confirmDeleteButton.href = evt.relatedTarget.getAttribute('data-bs-href');
+    console.log(evt.relatedTarget.getAttribute('data-bs-href'));
+});
+
+document.querySelector('.modal-footer > .btn-danger').addEventListener('click', (evt) => {
+    const url = evt.target.href;
+    fetch(url, {method:'DELETE'})
+        .then(() => window.location.reload());
+});
 
 function expandItem(evt){
     const item = evt.target;
@@ -24,9 +38,11 @@ function expandItem(evt){
     
     const expDiv = document.createElement('div');
     expDiv.classList.add('accordion-body');
+    const itemType = item.getAttribute('data-bs-item-type');
 
     // check if edit or experiment
-    if(item.classList.contains('edit')){
+    // if(item.classList.contains('edit')){
+    if(itemType == 'edit'){
         // console.log('this is an edit!')
         // console.log(`/api/edit/${item.id}`)
         
@@ -57,7 +73,8 @@ function expandItem(evt){
             });
     }
     
-    if(item.classList.contains('experiment')){
+    // if(item.classList.contains('experiment')){
+    if(itemType == 'experiment'){
         // console.log('this is an experiment!')
         // console.log(`/api/experiment/${item.id}`)
 
@@ -78,7 +95,8 @@ function expandItem(evt){
     }
     
     // particularly the first edit, which is the first version of the recipe on creation
-    if(item.classList.contains('createEdit')){
+    // if(item.classList.contains('createEdit')){
+    if(itemType == 'createEdit'){
         fetch(`/api/edit/${item.id}`)
             .then((response) => response.json())
             .then((edit_data) => {
@@ -101,3 +119,5 @@ const timelineItems = document.querySelectorAll('.timeline-item-details');
 for(const timelineItem of timelineItems){
     timelineItem.addEventListener('show.bs.collapse', expandItem)
 }
+
+// add event listener to modal button

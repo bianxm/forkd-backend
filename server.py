@@ -254,6 +254,21 @@ def experiment_details(id):
     # return in json
     return this_experiment.to_dict()
 
+@app.route('/api/experiment/<id>', methods=['DELETE'])
+def delete_experiment(id):
+    # get experiment from server by id
+    this_experiment = model.Experiment.get_by_id(id)
+    
+    # delete experiment
+    try:
+        db.session.delete(this_experiment)
+        db.session.commit()
+        flash('Experiment deleted','success')
+        return make_response('Experiment deleted', 204)
+    except:
+        # return error message
+        return make_response('Server error', 500)
+
 @app.route('/api/edit/<id>')
 def edit_details(id):
     # get given edit and previous edit from server by id
@@ -262,6 +277,24 @@ def edit_details(id):
     # return in json
     return {'curr':this_edit.to_dict(), 
             'prev':prev_edit.to_dict() if prev_edit is not None else None}
+
+@app.route('/api/edit/<id>', methods=['DELETE'])
+def delete_edit(id):
+    # get experiment from server by id
+    this_edit = model.Edit.get_by_id(id)
+    # check that it isn't the first edit
+    if this_edit == this_edit.recipe.edits[-1]:
+        return make_response('Server error', 500)
+    
+    # delete experiment
+    try:
+        db.session.delete(this_edit)
+        db.session.commit()
+        flash('Edit deleted','success')
+        return make_response('Edit deleted', 204)
+    except:
+        # return error message
+        return make_response('Server error', 500)
 
 if __name__ == '__main__':
     connect_to_db(app)

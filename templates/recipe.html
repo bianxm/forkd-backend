@@ -42,8 +42,8 @@
         {{item}}
         </button>
     </h2>
-    <div id="{{item.id}}" class="accordion-collapse collapse timeline-item-details {{item.htmlclass}} 
-    {% if session.get('user_id') == owner.id %}logged-in{% endif %}">
+    <div id="{{item.id}}" class="accordion-collapse collapse timeline-item-details" data-bs-item-type="{{item.htmlclass}}" 
+    {% if session.get('user_id') == owner.id %}data-bs-auth="logged-in"{% endif %} >
     </div>
     </div>
     {% endfor %}
@@ -54,7 +54,7 @@
             Recipe Created {{timeline_items[-1].commit_date}}
             </button>
         </h2>
-    <div id="{{timeline_items[-1].id}}" class="accordion-collapse collapse timeline-item-details createEdit"></div>
+    <div id="{{timeline_items[-1].id}}" class="accordion-collapse collapse timeline-item-details" data-bs-item-type="createEdit"></div>
     </div>
 </div>
 </div>
