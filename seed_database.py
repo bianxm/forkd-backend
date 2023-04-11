@@ -26,8 +26,8 @@ server.app.app_context().push()
 if sys.argv[1:2] == ['recreate']:
     model.db.create_all()
 
-# Create 10 users
-for i in range(5):
+# Create 5 users
+for i in range(1,4):
     email = f'user{i}@test.com'
     password = 'test'
     username = f'user{i}'
@@ -35,10 +35,11 @@ for i in range(5):
     this_user = model.User.create(email, password, username)
     
     # Create 2 recipes per user
-    for j in range(1,3):
+    # one private, then one public
+    for j in range(2):
         now = datetime.now()
         hour = timedelta(hours=1)
-        this_recipe = model.Recipe.create(this_user, now + hour*5)
+        this_recipe = model.Recipe.create(this_user, now + hour*5, j)
         base_edit = model.Edit.create(this_recipe, 
                                       f"User{i}'s Recipe {j}",
                                       f"desc: User{i}'s Recipe {j}",
@@ -58,5 +59,30 @@ for i in range(5):
                                 now+hour*k)
         
     model.db.session.add(this_user)
+model.db.session.commit()
+
+
+# Some permissions:
+# add can_experiment to a public recipe
+# User1 can_experiment on User2's public recipe id=4
+permission1 = model.Permission(user_id=1,recipe_id=4,can_experiment=True)
+
+# add can_edit to a public recipe
+# User2 can_edit on User3's public recipe id=6
+permission2 = model.Permission(user_id=2,recipe_id=6,can_experiment=True, can_edit=True)
+
+# add can view to a private recipe
+# User 3 can view User1's private recipe id=1
+permission3 = model.Permission(user_id=3,recipe_id=1)
+
+# add can_experiment to a private recipe
+# User 1 can_experiment User2's private recipe id=3
+permission4 = model.Permission(user_id=1,recipe_id=3,can_experiment=True)
+
+# add can_edit to a private recipe
+# User2 can_edit on User3's private recipe id=5
+permission5 = model.Permission(user_id=2,recipe_id=5,can_experiment=True,can_edit=True)
+
+model.db.session.add_all([permission1, permission2, permission3, permission4, permission5])
 
 model.db.session.commit()
