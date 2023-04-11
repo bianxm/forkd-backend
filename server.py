@@ -9,7 +9,6 @@ import os
 import model
 from datetime import datetime
 import requests
-# from passlib.hash import argon2
 
 load_dotenv()
 SPOONACULAR_KEY = os.environ['SPOONACULAR_KEY']
@@ -328,5 +327,5 @@ def delete_edit(id):
         return make_response('Server error', 500)
 
 if __name__ == '__main__':
-    connect_to_db(app)
+    connect_to_db(app, 'forkd-p')
     app.run(host='0.0.0.0', debug=True)

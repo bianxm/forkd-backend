@@ -9,22 +9,25 @@ from datetime import datetime, timedelta
 
 # if instructed, drop and re-create the db
 print(sys.argv[1:2])
+db_name = 'test'
 
-if sys.argv[1:2] == ['drop']:
-    os.system('dropdb forkd')
-    os.system('createdb forkd')
-    print("Database 'forkd' dropped and re-created")
-else: 
-    print('Adding to existing database...')
+if sys.argv[1:2] and sys.argv[2:3]:
+    db_name = sys.argv[2]
+    if sys.argv[1:2] == ['recreate']:
+        os.system(f'dropdb {db_name}')
+        os.system(f'createdb {db_name}')
+        print(f"Database '${db_name}' dropped and re-created")
+    else: 
+        print("Adding to existing database 'test'...")
 
 # connect to db (and re-create tables, if needed)
-model.connect_to_db(server.app)
+model.connect_to_db(server.app, db_name)
 server.app.app_context().push()
-if sys.argv[1:2] == ['drop']:
+if sys.argv[1:2] == ['recreate']:
     model.db.create_all()
 
 # Create 10 users
-for i in range(10):
+for i in range(5):
     email = f'user{i}@test.com'
     password = 'test'
     username = f'user{i}'
@@ -35,7 +38,7 @@ for i in range(10):
     for j in range(1,3):
         now = datetime.now()
         hour = timedelta(hours=1)
-        this_recipe = model.Recipe.create(this_user, now*5)
+        this_recipe = model.Recipe.create(this_user, now + hour*5)
         base_edit = model.Edit.create(this_recipe, 
                                       f"User{i}'s Recipe {j}",
                                       f"desc: User{i}'s Recipe {j}",

@@ -27,6 +27,9 @@ class User(DictableColumn, db.Model):
     password = db.Column(db.String)
     username = db.Column(db.String, unique = True)
 
+    # new 11 April - for profile pic
+    img_url = db.Column(db.String)
+
     # Relationships
     recipes = db.relationship('Recipe', back_populates='owner', order_by='desc(Recipe.last_modified)') # list of corresponding Recipe objects
 
@@ -78,16 +81,16 @@ class Recipe(DictableColumn, db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     source_url = db.Column(db.String)
     last_modified = db.Column(db.DateTime)
-
-    ## 2.0 or stretch features
     forked_from = db.Column(db.Integer, db.ForeignKey('recipes.id'))
-    # forked_from = db.Column(db.Integer, db.ForeignKey('edits.id'))
-    is_public = db.Column(db.Boolean)
+    
+    # changed 11 April
+    ## permissions
+    is_public = db.Column(db.Boolean) # default true
 
     # Relationships
     owner = db.relationship('User', back_populates='recipes') # one corresponding User object
-    experiments = db.relationship('Experiment', back_populates='recipe', order_by='desc(Experiment.commit_date)', cascade='save-update, merge, delete') # list of corresponding Experiment objects
-    edits = db.relationship('Edit', back_populates='recipe', order_by='desc(Edit.commit_date)', cascade='save-update, merge, delete') # list of corresponding Edit objects
+    experiments = db.relationship('Experiment', back_populates='recipe', order_by='desc(Experiment.commit_date)', cascade='save-update, merge, delete', lazy='selectin') # list of corresponding Experiment objects
+    edits = db.relationship('Edit', back_populates='recipe', order_by='desc(Edit.commit_date)', cascade='save-update, merge, delete', lazy='selectin') # list of corresponding Edit objects
     parent = db.relationship('Recipe', backref='children', remote_side=[id])
 
     # Class Methods
@@ -124,8 +127,10 @@ class Experiment(DictableColumn, db.Model):
     notes = db.Column(db.Text)
     commit_date = db.Column(db.DateTime)
 
-    ## 2.0 or stretch features
+    ## planning an experiment
     create_date = db.Column(db.DateTime) # to allow planning experiments in advance
+
+    ## permissions
     commit_by = db.Column(db.Integer) # to allow experiments submitted by collaborators
 
     # Relationships
@@ -165,9 +170,15 @@ class Edit(DictableColumn, db.Model):
     ingredients = db.Column(db.Text)
     instructions = db.Column(db.Text)
     commit_date = db.Column(db.DateTime)
+    
+    # new 11 April - for display pic
+    img_url = db.Column(db.String)
 
-    ## 2.0 or stretch features
+    # permissions
     commit_by = db.Column(db.Integer) # to allow edits submitted by collaborators
+    pending_approval = db.Column(db.Boolean) # for users with no edit access, to be approved
+    # on submission: pending_approval -> true
+    # if approved: pending_approval -> null, treated as normal edit
 
     # Relationships
     recipe = db.relationship('Recipe', back_populates='edits') # one corresponding Recipe object
@@ -197,19 +208,38 @@ class Edit(DictableColumn, db.Model):
         edits_list = self.recipe.edits
         return None if edits_list[-1] == self else edits_list[edits_list.index(self) + 1]
 
+# Permissions
+class Permission(db.Model):
+    """Middle table to map users to recipes they can view or edit"""
+
+    __tablename__ = 'permissions'
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    recipe_id = db.Column(db.Integer, db.ForeignKey('recipes.id'), primary_key=True)
+    can_experiment = db.Column(db.Boolean)
+    can_edit = db.Column(db.Boolean)
+
+    # # Relationships
+    # recipe = db.relationship('Recipe', back_populates='edits') # one corresponding Recipe object
+    # user = db.relationship('User')
+
 # CONNECTING TO DB
-def connect_to_db(flask_app, db_uri="postgresql:///forkd", echo=True):
-    flask_app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
+def connect_to_db(flask_app, db_uri="test", echo=True):
+    flask_app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql:///{db_uri}'
     flask_app.config['SQLALCHEMY_ECHO'] = echo
     flask_app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     db.app = flask_app
     db.init_app(flask_app)
 
-    print("Connected to the db!")
+    print(f"Connected to the db '{db_uri}'!")
 
 if __name__ == '__main__':
     from server import app
+    import sys
 
-    connect_to_db(app)
+    if sys.argv[1:2]:
+        connect_to_db(app, sys.argv[1])
+    else:
+        connect_to_db(app)
+    
     app.app_context().push()
