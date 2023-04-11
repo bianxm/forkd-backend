@@ -9,7 +9,7 @@ import os
 import model
 from datetime import datetime
 import requests
-from passlib.hash import argon2
+# from passlib.hash import argon2
 
 load_dotenv()
 SPOONACULAR_KEY = os.environ['SPOONACULAR_KEY']
@@ -60,8 +60,8 @@ def register_user():
         return redirect('/')
     
     # if input is valid, create the user
-    hashed_password = argon2.hash(given_password)
-    new_user = model.User.create(given_email, hashed_password, given_username)
+    # hashed_password = argon2.hash(given_password)
+    new_user = model.User.create(given_email, given_password, given_username)
     db.session.add(new_user)
     db.session.commit()
     flash(f"User created! {new_user}", 'success')
@@ -82,7 +82,8 @@ def login():
         flash('User not found. Please sign up','warning')
     else:
         # if not this_user.password == given_password:
-        if not argon2.verify(given_password,this_user.password):
+        # if not argon2.verify(given_password,this_user.password):
+        if not this_user.is_password_correct(given_password):
             flash('Wrong password','danger')
         else:
             # input is valid, so save user_id in session

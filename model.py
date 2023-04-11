@@ -3,6 +3,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import Mapped
 from datetime import datetime
+from passlib.hash import argon2
 
 db = SQLAlchemy()
 
@@ -37,6 +38,7 @@ class User(DictableColumn, db.Model):
     @classmethod
     def create(cls, email: str, password: str, username: str) -> 'User':
         """Create and return a new user."""
+        password = argon2.hash(password)
         return cls(email=email, password=password, username=username)
     
     @classmethod
@@ -60,6 +62,10 @@ class User(DictableColumn, db.Model):
             return cls.query.filter_by(email=email).one()
         except:
             return None 
+
+    # instance method -- check if password is correct
+    def is_password_correct(self, given_password: str) -> bool:
+        return argon2.verify(given_password, self.password)
 
 # Recipes
 class Recipe(DictableColumn, db.Model):
