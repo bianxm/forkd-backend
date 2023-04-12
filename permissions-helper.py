@@ -1,16 +1,75 @@
 from model import (db, connect_to_db, User, 
                    Recipe, Edit, Experiment, Permission)
+from sqlalchemy import select, union, desc
 
 # QUERIES I NEED NOW THAT I HAVE PERMISSIONS
-## Given a user('s id), return recipes they can view on an ad-hoc basis (but they don't own)
+## Given a user('s id), return recipes that have been shared to them 
     # basically, all recipes that are associated with that user in the permissions table
-## Given a viewer user('s id) and an owner user's id, return all the recipes owned by the owner that the viewer is allowed to view
-    # all owner's public recipes
-    # UNION all the owner's recipes that the viewer has permission to
+def get_shared_with_me(me_id: int) -> list('Recipe'):
+   # SELECT <Recipe> FROM recipes JOIN permissions
+   # WHERE permissions.user_id == <me_id>
+   select_shared_with_me = select(Recipe).join(Recipe.permissions).where(Permission.user_id==me_id)
+   return db.session.scalars(select_shared_with_me).all()
+
+## Given a viewer's user id and an owner's user id, 
+## return all recipes owned by owner
+## that the viewer can view
+## viewer id can be null --> meaning nobody is logged in
+def get_viewable_recipes(owner_id: int, viewer_id: int | None) -> list('Recipe'):
+    # SELECT <Recipe> FROM recipes WHERE user_id = <owner_id> AND is_public = True
+    select_owners_public_recipes = select(Recipe).where(Recipe.user_id == owner_id).where(Recipe.is_public == True)
+    # UNION
+    # SELECT <Recipe> FROM recipes AS r JOIN permissions AS p
+    # WHERE p.user_id = <viewer_id>
+    # AND r.user_id = <owner_id>
+    # ORDER BY Recipe.last_modified 
+    select_shared_with_viewer = select(Recipe).join(Recipe.permissions).where(Permission.user_id==viewer_id).where(Recipe.user_id==owner_id)
+    union_query = union(select_owners_public_recipes, select_shared_with_viewer).order_by(desc(Recipe.last_modified))
+    return db.session.scalars(union_query).all()
+
 ## Given a user('s id) and a recipe id, return whether they can view it (bool)
-## Given a user('s id) and a recipe id, return whether they can submit an experiment
-## Given a user('s id) and a recipe id, return whether they can submit an edit
-    # if no, when they submit that experiment, there's an approval_required flag
+# two queries for one bool value.... probably don't use this
+def can_user_view(user_id: int, recipe_id: int) -> bool:
+    this_recipe = Recipe.get_by_id(recipe_id)
+    if this_recipe.is_public:
+        return True
+    select_permission = select(Permission).where(Permission.user_id==user_id).where(Permission.recipe_id==recipe_id)
+    return db.session.execute(select_permission).one_or_none()
+
+## Given a user's id and a recipe id, 
+# return a list of timeline items (recipes and edits) in descending chrono order
+# that the user is allowed to view (so either just experiments, or both experiments and edits)
+def get_timeline(viewer_id: int | None, recipe_id: int): # -> list('Edit'|'Experiment'):
+    # return a dict:
+    # timeline: list of timeline items
+    # can_experiment: bool
+    # can_edit: bool
+    this_recipe = Recipe.get_by_id(recipe_id)
+    timeline_items = None
+    can_experiment = False
+    can_edit = False
+    this_permission = None
+    if viewer_id is not None:
+        this_permission = Permission.get_by_user_and_recipe(viewer_id, recipe_id) # returns the match, or None
+        if this_permission is not None:
+            can_experiment = this_permission.can_experiment
+            can_edit = this_permission.can_edit
+    if this_recipe.is_public:
+        timeline_items = this_recipe.edits
+    if this_recipe.is_experiments_public or this_permission is not None:
+        timeline_items = this_recipe.edits + this_recipe.experiments # sort this!!!
+    return {'timeline_items': timeline_items,
+            'can_experiment': can_experiment,
+            'can_edit': can_edit}
+    
+
+## Given a user('s id) and a recipe id, return whether they can submit an experiment (bool)
+## Use to check on server-side POST
+
+## Given a user('s id) and a recipe id, return whether they can submit an edit (bool)
+    # if no, when they submit that experiment, there's a pending_approval flag
+## Use to check on server-side POST
+
 
 # not for permissions, but
 ## Given a recipe, get the edit that it was forked from

@@ -226,6 +226,10 @@ class Permission(db.Model):
     recipe = db.relationship('Recipe', back_populates='permissions') # one corresponding Recipe object
     user = db.relationship('User', back_populates='permissions')
 
+    @classmethod
+    def get_by_user_and_recipe(cls, user_id, recipe_id):
+        return cls.query.get({'user_id': user_id, 'recipe_id':recipe_id})
+
 # CONNECTING TO DB
 def connect_to_db(flask_app, db_uri="test", echo=True):
     flask_app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql:///{db_uri}'
