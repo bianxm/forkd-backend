@@ -32,6 +32,7 @@ class User(DictableColumn, db.Model):
 
     # Relationships
     recipes = db.relationship('Recipe', back_populates='owner', order_by='desc(Recipe.last_modified)') # list of corresponding Recipe objects
+    permissions = db.relationship('Permission', back_populates='user')
 
     # Class Methods
     def __repr__(self):
@@ -90,9 +91,11 @@ class Recipe(DictableColumn, db.Model):
 
     # Relationships
     owner = db.relationship('User', back_populates='recipes') # one corresponding User object
-    experiments = db.relationship('Experiment', back_populates='recipe', order_by='desc(Experiment.commit_date)', cascade='save-update, merge, delete', lazy='selectin') # list of corresponding Experiment objects
+    experiments = db.relationship('Experiment', back_populates='recipe', order_by='desc(Experiment.commit_date)', cascade='save-update, merge, delete') # list of corresponding Experiment objects
     edits = db.relationship('Edit', back_populates='recipe', order_by='desc(Edit.commit_date)', cascade='save-update, merge, delete', lazy='selectin') # list of corresponding Edit objects
     parent = db.relationship('Recipe', backref='children', remote_side=[id])
+
+    permissions = db.relationship('Permission', back_populates='recipe')
 
     # Class Methods
     def __repr__(self):
@@ -220,8 +223,8 @@ class Permission(db.Model):
     can_edit = db.Column(db.Boolean)
 
     # # Relationships
-    # recipe = db.relationship('Recipe', back_populates='edits') # one corresponding Recipe object
-    # user = db.relationship('User')
+    recipe = db.relationship('Recipe', back_populates='permissions') # one corresponding Recipe object
+    user = db.relationship('User', back_populates='permissions')
 
 # CONNECTING TO DB
 def connect_to_db(flask_app, db_uri="test", echo=True):

@@ -26,7 +26,7 @@ server.app.app_context().push()
 if sys.argv[1:2] == ['recreate']:
     model.db.create_all()
 
-# Create 5 users
+# Create 3 users
 for i in range(1,4):
     email = f'user{i}@test.com'
     password = 'test'
@@ -36,10 +36,10 @@ for i in range(1,4):
     
     # Create 3 recipes per user
     # one private, then one public edits, then one public experiments
-    for j in range(2):
+    for j in range(3):
         now = datetime.now()
         hour = timedelta(hours=1)
-        this_recipe = model.Recipe.create(this_user, now + hour*5, j, j%2)
+        this_recipe = model.Recipe.create(this_user, now + hour*5, bool(j), j%2)
         base_edit = model.Edit.create(this_recipe, 
                                       f"User{i}'s Recipe {j}",
                                       f"desc: User{i}'s Recipe {j}",
@@ -89,7 +89,7 @@ model.db.session.commit()
 for i in range(1,4): # for every user id
     # this_permission = model.Permission(user_id=i,recipe_id=((i%3)+1))
     for j in range(1,4): # for the next user's recipes
-        this_permission = model.Permission(user_id=i,recipe_id=((i%3)+j),can_experiment=bool(i),can_edit=i%2)
+        this_permission = model.Permission(user_id=i,recipe_id=((3*(i%3))+j),can_experiment=bool(i),can_edit=i%2)
         model.db.session.add(this_permission)
 
 model.db.session.commit()
