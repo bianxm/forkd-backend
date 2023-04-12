@@ -86,6 +86,7 @@ class Recipe(DictableColumn, db.Model):
     # changed 11 April
     ## permissions
     is_public = db.Column(db.Boolean) # default true
+    is_experiments_public = db.Column(db.Boolean) # default true
 
     # Relationships
     owner = db.relationship('User', back_populates='recipes') # one corresponding User object
@@ -99,11 +100,11 @@ class Recipe(DictableColumn, db.Model):
 
     ## Class CRUD Methods
     @classmethod
-    def create(cls, owner: User, modified_on: datetime, is_public: bool = True, 
+    def create(cls, owner: User, modified_on: datetime, is_public: bool = True, is_experiments_public: bool = True, 
                source_url: str = None, forked_from=None) -> 'Recipe':
         """Create and return a new recipe."""
         return cls(owner=owner, last_modified=modified_on, 
-                   is_public=is_public, source_url=source_url, forked_from=forked_from)
+                   is_public=is_public, is_experiments_public=is_experiments_public, source_url=source_url, forked_from=forked_from)
     
     @classmethod
     def get_by_id(cls, id: int) -> 'Recipe':

@@ -34,12 +34,12 @@ for i in range(1,4):
 
     this_user = model.User.create(email, password, username)
     
-    # Create 2 recipes per user
-    # one private, then one public
+    # Create 3 recipes per user
+    # one private, then one public edits, then one public experiments
     for j in range(2):
         now = datetime.now()
         hour = timedelta(hours=1)
-        this_recipe = model.Recipe.create(this_user, now + hour*5, j)
+        this_recipe = model.Recipe.create(this_user, now + hour*5, j, j%2)
         base_edit = model.Edit.create(this_recipe, 
                                       f"User{i}'s Recipe {j}",
                                       f"desc: User{i}'s Recipe {j}",
@@ -52,37 +52,44 @@ for i in range(1,4):
                                       f'User{i} Recipe{j} Edit!!',
                                       f'User{i} Recipe{j} Edit!!',
                                       now+hour*5)
-        for k in range(1,4):
-            first_exp = model.Experiment.create(this_recipe,
+        for k in range(1,3):
+            this_exp = model.Experiment.create(this_recipe,
                                 f'Experiment {k}',
                                 f'It went ok experiment {k}',
                                 now+hour*k)
+            model.db.session.add(this_exp)
         
     model.db.session.add(this_user)
 model.db.session.commit()
 
 
-# Some permissions:
-# add can_experiment to a public recipe
-# User1 can_experiment on User2's public recipe id=4
-permission1 = model.Permission(user_id=1,recipe_id=4,can_experiment=True)
+# # Some permissions:
+# # add can_experiment to a public recipe
+# # User1 can_experiment on User2's public recipe id=4
+# permission1 = model.Permission(user_id=1,recipe_id=4,can_experiment=True)
 
-# add can_edit to a public recipe
-# User2 can_edit on User3's public recipe id=6
-permission2 = model.Permission(user_id=2,recipe_id=6,can_experiment=True, can_edit=True)
+# # add can_edit to a public recipe
+# # User2 can_edit on User3's public recipe id=6
+# permission2 = model.Permission(user_id=2,recipe_id=6,can_experiment=True, can_edit=True)
 
-# add can view to a private recipe
-# User 3 can view User1's private recipe id=1
-permission3 = model.Permission(user_id=3,recipe_id=1)
+# # add can view to a private recipe
+# # User 3 can view User1's private recipe id=1
+# permission3 = model.Permission(user_id=3,recipe_id=1)
 
-# add can_experiment to a private recipe
-# User 1 can_experiment User2's private recipe id=3
-permission4 = model.Permission(user_id=1,recipe_id=3,can_experiment=True)
+# # add can_experiment to a private recipe
+# # User 1 can_experiment User2's private recipe id=3
+# permission4 = model.Permission(user_id=1,recipe_id=3,can_experiment=True)
 
-# add can_edit to a private recipe
-# User2 can_edit on User3's private recipe id=5
-permission5 = model.Permission(user_id=2,recipe_id=5,can_experiment=True,can_edit=True)
+# # add can_edit to a private recipe
+# # User2 can_edit on User3's private recipe id=5
+# permission5 = model.Permission(user_id=2,recipe_id=5,can_experiment=True,can_edit=True)
 
-model.db.session.add_all([permission1, permission2, permission3, permission4, permission5])
+# model.db.session.add_all([permission1, permission2, permission3, permission4, permission5])
+
+for i in range(1,4): # for every user id
+    # this_permission = model.Permission(user_id=i,recipe_id=((i%3)+1))
+    for j in range(1,4): # for the next user's recipes
+        this_permission = model.Permission(user_id=i,recipe_id=((i%3)+j),can_experiment=bool(i),can_edit=i%2)
+        model.db.session.add(this_permission)
 
 model.db.session.commit()
