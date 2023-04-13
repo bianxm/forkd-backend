@@ -89,7 +89,7 @@ model.db.session.commit()
 for i in range(1,4): # for every user id
     # this_permission = model.Permission(user_id=i,recipe_id=((i%3)+1))
     for j in range(1,4): # for the next user's recipes
-        this_permission = model.Permission(user_id=i,recipe_id=((3*(i%3))+j),can_experiment=bool(i),can_edit=i%2)
+        this_permission = model.Permission(user_id=i,recipe_id=((3*(i%3))+j),can_experiment=bool(i-1),can_edit=(i-1)%2)
         model.db.session.add(this_permission)
 
 model.db.session.commit()
