@@ -13,8 +13,16 @@ db = SQLAlchemy()
 class DictableColumn():
     def to_dict(self):
         crowded_dict = self.__dict__
+        # cleaned_dict = {}
+        # for key, val in crowded_dict.items():
+        #     if isinstance(val, (str,int,float,bool, type(None), datetime)):
+        #         cleaned_dict[key] = val
+        #     elif isinstance(val, list):
+        #         if isinstance(val[0], (Edit, Experiment)):
+        #             cleaned_dict[key] = [i.to_dict() for i in val]
         return {key:val for key, val in crowded_dict.items() 
-                if isinstance(val,(str,int,float,bool, list, dict, type(None), datetime))}
+                if isinstance(val,(str,int,float,bool, dict, type(None), datetime))}
+        # return cleaned_dict
 
 # DATA MODEL
 # Users
@@ -181,6 +189,11 @@ class Experiment(DictableColumn, db.Model):
     # Class Methods
     def __repr__(self):
         return f'<Experiment id={self.id} commit_date={self.commit_date}>'
+    
+    def to_dict(self):
+        dicted = super().to_dict()
+        dicted['item_type'] = 'experiment'
+        return dicted
 
     ## Class CRUD Methods
     @classmethod
@@ -228,6 +241,11 @@ class Edit(DictableColumn, db.Model):
     # Class Methods
     def __repr__(self):
         return f'<Edit id={self.id} commit_date={self.commit_date}>'
+    
+    def to_dict(self):
+        dicted = super().to_dict()
+        dicted['item_type'] = 'edit'
+        return dicted
     
     ## Class CRUD Methods
     @classmethod
