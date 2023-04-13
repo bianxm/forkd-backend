@@ -64,11 +64,11 @@ def get_timeline(viewer_id: int | None, recipe_id: int): # -> list('Edit'|'Exper
     
 
 ## Given a user('s id) and a recipe id, return whether they can submit an experiment (bool)
-## Use to check on server-side POST
+## Use to check on server-side POST - CREATE EXPERIMENT
 
 ## Given a user('s id) and a recipe id, return whether they can submit an edit (bool)
     # if no, when they submit that experiment, there's a pending_approval flag
-## Use to check on server-side POST
+## Use to check on server-side POST - CREATE EDIT
 
 
 # not for permissions, but

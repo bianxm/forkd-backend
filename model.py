@@ -2,8 +2,10 @@
 
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import Mapped
-from datetime import datetime
+from datetime import datetime, timedelta
 from passlib.hash import argon2
+import base64
+import os
 
 db = SQLAlchemy()
 
@@ -29,6 +31,9 @@ class User(DictableColumn, db.Model):
 
     # new 11 April - for profile pic
     img_url = db.Column(db.String)
+    # for login
+    token = db.Column(db.String(32), index=True, unique=True)
+    token_expiration = db.Column(db.DateTime)
 
     # Relationships
     recipes = db.relationship('Recipe', back_populates='owner', order_by='desc(Recipe.last_modified)') # list of corresponding Recipe objects
@@ -67,9 +72,39 @@ class User(DictableColumn, db.Model):
         except:
             return None 
 
+    ### LOGIN METHODS
     # instance method -- check if password is correct
     def is_password_correct(self, given_password: str) -> bool:
         return argon2.verify(given_password, self.password)
+    
+    def get_token(self, expires_in_hrs: int = 2):
+        now = datetime.utcnow()
+        if self.token and self.token_expiration > now + timedelta(seconds=60):
+            return self.token
+        self.token = base64.b64encode(os.urandom(24)).decode('utf-8')
+        self.token_expiration = now + timedelta(hours=expires_in_hrs)
+        db.session.add(self)
+        return self.token
+
+    def revoke_token(self):
+        self.token_expiration = datetime.utcnow() - timedelta(seconds=1)
+    
+    @staticmethod
+    def check_token(token):
+        user = User.query.filter_by(token=token).first()
+        if user is None or user.token_expiration < datetime.utcnow():
+            return None
+        return user
+    
+    ### to_dict method == exclude password, token, token_expiration
+    def to_dict(self):
+        dirty_dict = super().to_dict()
+        del dirty_dict['password']
+        del dirty_dict['email']
+        del dirty_dict['token']
+        del dirty_dict['token_expiration']
+
+        return dirty_dict
 
 # Recipes
 class Recipe(DictableColumn, db.Model):
