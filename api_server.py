@@ -101,7 +101,7 @@ def create_user():
     db.session.add(new_user)
     db.session.commit()
     
-    return 'Account successfully created', 200
+    return 'Account successfully created', 201
 
 
 ################ Endpoint '/api/users/<id>' ############################
@@ -167,7 +167,7 @@ def create_new_recipe():
     model.Edit.create(newRecipe, title, description, ingredients, instructions, now) # create first edit
     model.db.session.add(newRecipe)
     model.db.session.commit()
-    return 'Recipe successfully created', 204
+    return 'Recipe successfully created', 201
 
 ################ Endpoint '/api/recipes/<id>' ############################
 # GET -- return timeline-items list, can_edit bool, can_exp bool
@@ -223,7 +223,7 @@ def submit_new_exp(id):
     this_recipe.update_last_modified(now) # update recipe's last_modified field
     model.db.session.add_all([new_experiment, this_recipe])
     model.db.session.commit()
-    return 'Experiment successfully created', 204
+    return 'Experiment successfully created', 201
 
 # PUT (or PATCH?) -- Create a new edit
 @app.route('/api/recipes/<id>', methods=['PUT']) #or PATCH?
@@ -250,7 +250,7 @@ def submit_new_edit(id):
     this_recipe.update_last_modified(now) # update recipe's last_modified field
     model.db.session.add_all([new_edit, this_recipe])
     model.db.session.commit()
-    return 'Experiment successfully created', 204
+    return 'Experiment successfully created', 201
     
     # handle if recipe does not exist
 
