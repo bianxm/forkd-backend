@@ -48,7 +48,7 @@ def verify_password(login: str, password: str) -> model.User:
 def basic_auth_error(status):
     return error_response(status)
 
-@app.route('/tokens', methods=['POST']) # login - give a token
+@app.route('/api/tokens', methods=['POST']) # login - give a token
 @basic_auth.login_required
 def get_token():
     token = basic_auth.current_user().get_token()
@@ -65,7 +65,7 @@ def verify_token(token):
 def token_auth_error(status):
     return error_response(status)
 
-@app.route('/tokens', methods=['DELETE']) # logout - revoke token
+@app.route('/api/tokens', methods=['DELETE']) # logout - revoke token
 @token_auth.login_required
 def revoke_token():
     token_auth.current_user().revoke_token()
