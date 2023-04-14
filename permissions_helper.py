@@ -17,7 +17,7 @@ def get_shared_with_me(me_id: int) -> list('Recipe'):
 ## viewer id can be null --> meaning nobody is logged in
 def get_viewable_recipes(owner_id: int, viewer_id: int | None) -> list[Recipe]:
     # SELECT <Recipe> FROM recipes WHERE user_id = <owner_id> AND is_public = True
-    select_owners_public_recipes = select(Recipe).where(Recipe.user_id == owner_id).where(Recipe.is_public == True)
+    select_owners_public_recipes = select(Recipe).where(Recipe.user_id == owner_id)
     # UNION
     # SELECT <Recipe> FROM recipes AS r JOIN permissions AS p
     # WHERE p.user_id = <viewer_id>
@@ -46,17 +46,26 @@ def get_timeline(viewer_id: int | None, recipe_id: int): # -> list('Edit'|'Exper
     # can_experiment: bool
     # can_edit: bool
     this_recipe = Recipe.get_by_id(recipe_id)
+    if not this_recipe:
+        return None
     timeline_items = None
     can_experiment = False
     can_edit = False
     this_permission = None
-    if viewer_id is not None:
+    if this_recipe.user_id == viewer_id:
+        can_experiment = True
+        can_edit = True
+        timeline_items = this_recipe.edits + this_recipe.experiments
+        return (timeline_items, can_experiment, can_edit)
+    elif viewer_id is not None:
         this_permission = Permission.get_by_user_and_recipe(viewer_id, recipe_id) # returns the match, or None
         if this_permission is not None:
             can_experiment = this_permission.can_experiment
             can_edit = this_permission.can_edit
+    
     if this_recipe.is_public:
         timeline_items = this_recipe.edits
+    
     if this_recipe.is_experiments_public or this_permission is not None:
         timeline_items = this_recipe.edits + this_recipe.experiments # sort this!!!
     # return {'timeline_items': timeline_items,

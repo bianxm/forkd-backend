@@ -85,13 +85,16 @@ def create_user():
     given_email = request.form.get('email')
     given_username = request.form.get('username')
     given_password = request.form.get('password')
+    print(request.form)
     
     # input validation
+    # validate that fields are not empty!!!!
     if model.User.get_by_email(given_email):
         return error_response(409, 'Email already taken')
     if model.User.get_by_username(given_username):
         return error_response(409, 'Username already taken')
     # password the same check will be done client-side 
+    # validate that fields are not empty!!!!
 
     # if input is valid, create the user
     new_user = model.User.create(given_email, given_password, given_username)
@@ -147,12 +150,16 @@ def create_new_recipe():
     instructions = request.form.get('instructions')
     given_url = request.form.get('url')
     forked_from_id = request.form.get('forked-from') 
-    # img_url = request.form.get('img-url') 
-    # is_public = request.form.get('set-is-public')
-    # is_experiments_public = request.form.get('set-is-exps-public')
+    img_url = request.form.get('img-url') 
+    is_public = request.form.get('set-is-public')
+    is_experiments_public = request.form.get('set-is-exps-public')
+
+    print('REQUEST.FORM',request.form)
 
     submitter = token_auth.current_user()
     now = datetime.now()
+
+    # input validation needed!
 
     # db changes
     newRecipe = model.Recipe.create(owner=submitter, modified_on=now, 
@@ -170,6 +177,10 @@ def read_recipe_timeline(id):
     # viewable_recipes = ph.get_viewable_recipes(id, token_auth.current_user().id if token_auth.current_user() else None)
     response = dict()
     timeline_items = ph.get_timeline(token_auth.current_user().id if token_auth.current_user() else None, id)
+    if not timeline_items:
+        return error_response(404)
+    if not timeline_items[0]:
+        return error_response(403, 'User cannot view this recipe')
     response['timeline_items'] = [item.to_dict() for item in timeline_items[0]]
     response['can_experiment'] = timeline_items[1]
     response['can_edit'] = timeline_items[2]
@@ -192,20 +203,19 @@ def delete_recipe(id):
 # POST -- Create a new experiment
 @app.route('/api/recipes/<id>', methods=['POST'])
 @token_auth.login_required()
-def submit_new_exp():
+def submit_new_exp(id):
     # parse out POST params
     commit_msg = request.form.get('commit-msg')
     notes = request.form.get('notes')
-    recipe_id = request.form.get('recipe_id')
     now = datetime.now()
-    this_recipe = model.Recipe.get_by_id(recipe_id)
+    this_recipe = model.Recipe.get_by_id(id)
 
     # check that submitter is allowed to add a new experiment to given recipe
     # if this_recipe.owner.id != session.get('user_id'):
     #     flash('You are not allowed to add an experiment to that recipe!','danger')
     #     return render_template('404.html')
     permission = model.Permission.get_by_user_and_recipe(token_auth.current_user().id, id)
-    if not (permission.can_experiment or this_recipe.owner == token_auth.current_user()):
+    if not (getattr(permission, 'can_experiment', False) or this_recipe.owner == token_auth.current_user()):
         return error_response(403)
     
     # db changes
@@ -218,19 +228,18 @@ def submit_new_exp():
 # PUT (or PATCH?) -- Create a new edit
 @app.route('/api/recipes/<id>', methods=['PUT']) #or PATCH?
 @token_auth.login_required()
-def submit_new_edit():
+def submit_new_edit(id):
     # parse out POST params
-    recipe_id = request.form.get('recipe_id')
     title = request.form.get('title')
     description = request.form.get('description')
     ingredients = request.form.get('ingredients')
     instructions = request.form.get('instructions')
     now = datetime.now()
-    this_recipe = model.Recipe.get_by_id(recipe_id)
+    this_recipe = model.Recipe.get_by_id(id)
     
     # check that submitter is allowed to add a new edit to given recipe
     permission = model.Permission.get_by_user_and_recipe(token_auth.current_user().id, id)
-    if not (permission.can_edit or this_recipe.owner == token_auth.current_user()):
+    if not (getattr(permission, 'can_edit', False) or this_recipe.owner == token_auth.current_user()):
         return error_response(403)
 
     # db changes
@@ -245,6 +254,12 @@ def submit_new_edit():
     
     # handle if recipe does not exist
 
+########### Endpoint '/api/recipes/<id>/permissions' ###################
+# GET - return is_public, is_experiments_public, and list of users with permissions
+# POST - create new permission (give new user a new permission)
+# PATCH - edit permission level
+# DELETE - revoke a permission
+
 ################ Endpoint '/api/edits/<id>' ############################
 # @app.route('/api/edits/<id>')
 # @token_auth.login_required(optional=True)
@@ -255,6 +270,7 @@ def delete_edit(id):
     # get experiment from server by id
     this_edit = model.Edit.get_by_id(id)
     # handle if edit does not exist
+    # handle if first edit -- CANNOT DELETE
 
     # check if sender is allowed to delete
     if token_auth.current_user().id != this_edit.recipe.user_id:
