@@ -86,8 +86,11 @@ def create_user():
     given_username = request.form.get('username')
     given_password = request.form.get('password')
     
-    # input validation
+    ### input validation
     # validate that fields are not empty!!!!
+    if not given_email or not given_password or not given_username:
+        return error_response(400)
+    # validate that email or username not already taken
     if model.User.get_by_email(given_email):
         return error_response(409, 'Email already taken')
     if model.User.get_by_username(given_username):
@@ -103,21 +106,30 @@ def create_user():
     return 'Account successfully created', 201
 
 
-################ Endpoint '/api/users/<id>' ############################
+################ Endpoint '/api/users/<username>' ############################
 # GET -- return user details and list of recipes
-@app.route('/api/users/<id>')
+@app.route('/api/users/<username>')
 @token_auth.login_required(optional=True)
-def read_user_profile(id):
-    this_user = model.User.get_by_id(id)
-    user_details = this_user.to_dict()
-    viewable_recipes = ph.get_viewable_recipes(id, token_auth.current_user().id if token_auth.current_user() else None)
-    recipe_list = []
-    for recipe in viewable_recipes:
-        recipe_dict= recipe.to_dict() 
-        recipe_dict['title'] = recipe.edits[0].title
-        recipe_dict['description'] = recipe.edits[0].description
-        recipe_dict['img_url'] = recipe.edits[0].img_url
-        recipe_list.append(recipe_dict)
+def read_user_profile(username):
+    owner = model.User.get_by_username(username)
+    viewer = token_auth.current_user()
+    if not owner:
+        return error_response(404)
+    user_details = owner.to_dict()
+    
+    # this is for if viewer is not the owner!!!
+    if viewer is not owner:
+        viewable_recipes = ph.get_viewable_recipes(owner.id, viewer.id if viewer else None)
+        recipe_list = []
+        for recipe in viewable_recipes:
+            recipe_dict= recipe.to_dict() 
+            recipe_dict['title'] = recipe.edits[0].title
+            recipe_dict['description'] = recipe.edits[0].description
+            recipe_dict['img_url'] = recipe.edits[0].img_url
+            recipe_list.append(recipe_dict)
+    else:
+        # return everything the user owns, plus everything shared with them
+        pass
     user_details['recipes'] = recipe_list
     return user_details
 

@@ -17,7 +17,7 @@ def get_shared_with_me(me_id: int) -> list('Recipe'):
 ## viewer id can be null --> meaning nobody is logged in
 def get_viewable_recipes(owner_id: int, viewer_id: int | None) -> list[Recipe]:
     # SELECT <Recipe> FROM recipes WHERE user_id = <owner_id> AND is_public = True
-    select_owners_public_recipes = select(Recipe).where(Recipe.user_id == owner_id)
+    select_owners_public_recipes = select(Recipe).where(Recipe.user_id == owner_id).where(Recipe.is_public == True)
     # UNION
     # SELECT <Recipe> FROM recipes AS r JOIN permissions AS p
     # WHERE p.user_id = <viewer_id>
