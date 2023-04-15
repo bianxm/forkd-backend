@@ -85,7 +85,6 @@ def create_user():
     given_email = request.form.get('email')
     given_username = request.form.get('username')
     given_password = request.form.get('password')
-    print(request.form)
     
     # input validation
     # validate that fields are not empty!!!!
@@ -154,7 +153,6 @@ def create_new_recipe():
     is_public = request.form.get('set-is-public')
     is_experiments_public = request.form.get('set-is-exps-public')
 
-    print('REQUEST.FORM',request.form)
 
     submitter = token_auth.current_user()
     now = datetime.now()
