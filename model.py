@@ -46,6 +46,8 @@ class User(DictableColumn, db.Model):
     # Relationships
     recipes = db.relationship('Recipe', back_populates='owner', order_by='desc(Recipe.last_modified)') # list of corresponding Recipe objects
     permissions = db.relationship('Permission', back_populates='user')
+    committed_edits = db.relationship('Edit', back_populates='committer')
+    committed_experiments = db.relationship('Experiment', back_populates='committer')
 
     # Class Methods
     def __repr__(self):
@@ -149,8 +151,11 @@ class Recipe(DictableColumn, db.Model):
     def create(cls, owner: User, modified_on: datetime, is_public: bool = True, is_experiments_public: bool = True, 
                source_url: str = None, forked_from=None) -> 'Recipe':
         """Create and return a new recipe."""
+        is_public = True if is_public is None else is_public
+        is_experiments_public = True if is_experiments_public is None else is_experiments_public
         return cls(owner=owner, last_modified=modified_on, 
-                   is_public=is_public, is_experiments_public=is_experiments_public, source_url=source_url, forked_from=forked_from)
+                   is_public=is_public, is_experiments_public=is_experiments_public, 
+                   source_url=source_url, forked_from=forked_from)
     
     @classmethod
     def get_by_id(cls, id: int) -> 'Recipe':
@@ -178,10 +183,11 @@ class Experiment(DictableColumn, db.Model):
     create_date = db.Column(db.DateTime) # to allow planning experiments in advance
 
     ## permissions
-    commit_by = db.Column(db.Integer) # to allow experiments submitted by collaborators
+    commit_by = db.Column(db.Integer, db.ForeignKey('users.id')) # to allow experiments submitted by collaborators
 
     # Relationships
     recipe = db.relationship('Recipe', back_populates='experiments') # one corresponsding Recipe object
+    committer = db.relationship('User', back_populates='committed_experiments')
 
     # misc class variable
     htmlclass = 'experiment'
@@ -198,11 +204,11 @@ class Experiment(DictableColumn, db.Model):
     ## Class CRUD Methods
     @classmethod
     def create(cls, parent_recipe, commit_msg, notes, commit_date,
-               create_date=None, commit_by=None):
+               create_date=None, committer: User|None=None):
         """Create and return a new experiment"""
         return cls(recipe=parent_recipe, commit_msg=commit_msg,
                    notes=notes, commit_date=commit_date, 
-                   create_date=create_date, commit_by=commit_by)
+                   create_date=create_date, committer=committer)
     
     @classmethod
     def get_by_id(cls, id: int) -> 'Experiment':
@@ -227,13 +233,14 @@ class Edit(DictableColumn, db.Model):
     img_url = db.Column(db.String)
 
     # permissions
-    commit_by = db.Column(db.Integer) # to allow edits submitted by collaborators
+    commit_by = db.Column(db.Integer, db.ForeignKey('users.id')) # to allow edits submitted by collaborators
     pending_approval = db.Column(db.Boolean) # for users with no edit access, to be approved
     # on submission: pending_approval -> true
     # if approved: pending_approval -> null, treated as normal edit
 
     # Relationships
     recipe = db.relationship('Recipe', back_populates='edits') # one corresponding Recipe object
+    committer = db.relationship('User', back_populates='committed_edits')
 
     # misc class variable
     htmlclass = 'edit'
@@ -250,10 +257,11 @@ class Edit(DictableColumn, db.Model):
     ## Class CRUD Methods
     @classmethod
     def create(cls, recipe: Recipe, title: str, desc: str, ingredients: str, 
-               instructions: str, commit_date: datetime, commit_by=None) -> 'Edit':
+               instructions: str, img_url: str, commit_date: datetime, committer: User|None=None) -> 'Edit':
         return cls(recipe=recipe, title=title, description=desc,
                    ingredients=ingredients, instructions=instructions,
-                   commit_date=commit_date, commit_by=commit_by)
+                   img_url=img_url,
+                   commit_date=commit_date, committer=committer)
     
     @classmethod
     def get_by_id(cls, id: int) -> 'Edit':
