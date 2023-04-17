@@ -39,6 +39,7 @@ class User(DictableColumn, db.Model):
 
     # new 11 April - for profile pic
     img_url = db.Column(db.String)
+    is_temp_user = db.Column(db.Boolean)
     # for login
     token = db.Column(db.String(32), index=True, unique=True)
     token_expiration = db.Column(db.DateTime)
@@ -55,10 +56,10 @@ class User(DictableColumn, db.Model):
     
     ## Class CRUD Methods
     @classmethod
-    def create(cls, email: str, password: str, username: str) -> 'User':
+    def create(cls, email: str, password: str, username: str, is_temp_user: bool = False) -> 'User':
         """Create and return a new user."""
         password = argon2.hash(password)
-        return cls(email=email, password=password, username=username)
+        return cls(email=email, password=password, username=username, is_temp_user=is_temp_user)
     
     @classmethod
     def get_all(cls):

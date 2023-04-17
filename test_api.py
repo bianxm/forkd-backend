@@ -243,21 +243,24 @@ class TestCreateAndDelete(LoggedInUser, unittest.TestCase):
         self.assertEqual(self.recipe.edits[0].title,'New title')
 
     def test_delete_edit(self):
+        response1 = client.put(f'/api/recipes/{self.recipe.id}', data={
+                'title':'New title'
+            }, headers = {'Authorization': f'Bearer {self.token}'})
         response = client.delete(f'/api/edits/{self.recipe.edits[0].id}',
                                  headers = {'Authorization': f'Bearer {self.token}'})
-        self.assertEqual(response.status_code, 204, 'Server should return 204')
-        self.assertEqual(len(self.recipe.edits), self.initial_ed_count-1)
+        self.assertEqual(response.status_code, 200, 'Server should return 200')
+        self.assertEqual(len(self.recipe.edits), self.initial_ed_count)
     
     def test_delete_experiment(self):
         response = client.delete(f'/api/experiments/{self.recipe.experiments[0].id}',
                                  headers = {'Authorization': f'Bearer {self.token}'})
-        self.assertEqual(response.status_code, 204, 'Server should return 204')
+        self.assertEqual(response.status_code, 200, 'Server should return 200')
         self.assertEqual(len(self.recipe.experiments), self.initial_exp_count-1)
     
     def test_delete_recipe(self):
         response = client.delete(f'/api/recipes/{self.recipe.id}',
                                  headers = {'Authorization': f'Bearer {self.token}'})
-        self.assertEqual(response.status_code, 204, 'Server should return 204')
+        self.assertEqual(response.status_code, 200, 'Server should return 200')
         self.assertEqual(len(self.user.recipes), self.initial_r_count-1)
         self.assertEqual(model.Edit.query.filter_by(recipe_id=self.recipe.id).count(), 0)
         self.assertEqual(model.Experiment.query.filter_by(recipe_id=self.recipe.id).count(), 0)

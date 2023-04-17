@@ -131,15 +131,52 @@ def read_user_profile(username):
     return user_details
 
 # DELETE -- Delete this user
-# @app.route('/api/users/<id>', methods=['DELETE'])
-# @token_auth.login_required()
+@app.route('/api/users/<id>', methods=['DELETE'])
+@token_auth.login_required()
+def delete_user(id):
+    submitter = token_auth.current_user()
+    if submitter.id != id:
+        return error_response(403)
+    
+    if submitter.is_temp_user:
+        # go through all their recipes and delete and commit
+        for recipe in submitter.recipes:
+            db.session.delete(recipe)
+        db.session.commit()
+        # go through all their edits, experiments and delete (basically in other's recipes)
+        for edit in submitter.committed_edits:
+            db.session.delete(edit)
+        for experiment in submitter.committed_experiments:
+            db.session.delete(experiment)
+        db.session.commit()
+        db.session.delete(submitter)
+        db.session.commit()
+        return 'Delete successful', 200
+        # EDITING EXPERIMENTS: they can't edit other people's experiments in other people's recipes
+        # they can't delete edits and experiments in other people's recipes either (but can in their own)
+        # but they can in their own recipes
+    else:
+        # go through user's recipes
+        # get all permissions, and pass ownership to someone with highest permission 
+        # then delete all recipes
+        # then delete user
+        # their edits and experiments in other people's recipes will be kept but dis-associated (put 'deactivated user')
+        pass
 
 # PUT (or PATCH?) -- Edit user details
-# @app.route('/api/users/<id>', methods=['PUT']) or PATCH?
+# @app.route('/api/users/<id>', methods=['PATCH'])
 # @token_auth.login_required()
 # def update_user(id):
-#     if token_auth.current_user().id != id:
+#     submitter = token_auth.current_user()
+#     if submitter.id != id:
 #         return error_response(403)
+    
+#     # parse out PATCH form params
+#     # could only be one of: email, 
+
+
+#     # update db and commit
+#     pass
     
 
 ################ Endpoint '/api/recipes' ############################
@@ -209,7 +246,7 @@ def delete_recipe(id):
     
     db.session.delete(this_recipe)
     db.session.commit()
-    return 'Recipe successfully deleted', 204
+    return 'Recipe successfully deleted', 200
 
 # POST -- Create a new experiment
 @app.route('/api/recipes/<id>', methods=['POST'])
@@ -285,7 +322,7 @@ def create_new_edit(id):
 # GET - return is_public, is_experiments_public, and list of users with permissions
 @app.route('/api/recipes/<recipe_id>/permissions')
 @token_auth.login_required()
-def get_permissions(recipe_id):
+def read_permissions(recipe_id):
     response = dict()
     submitter = token_auth.current_user()
     recipe = model.Recipe.get_by_id(recipe_id)
@@ -316,7 +353,7 @@ def get_permissions(recipe_id):
 # do it one by one
 @app.route('/api/recipes/<recipe_id>/permissions', methods=['POST'])
 @token_auth.login_required()
-def add_permission(recipe_id):
+def create_permission(recipe_id):
     # parse out POST params
     new_user_id = request.form.get('user_id')
     can_experiment = request.form.get('can_experiment')
@@ -400,13 +437,13 @@ def delete_edit(id):
     # can delete if user is owner of recipe or has edit access
     if submitter.id != this_edit.recipe.user_id:
         permission = model.Permission.get_by_user_and_recipe(submitter.id, this_edit.recipe_id)
-        if not permission or not permission.can_edit:
+        if not permission or not permission.can_edit or submitter.is_temp_user:
             return error_response(403)
     
     # delete edit
     db.session.delete(this_edit)
     db.session.commit()
-    return 'Edit successfully deleted', 204
+    return 'Edit successfully deleted', 200
 
 
 @app.route('/api/edits/<id>', methods=['PATCH'])
@@ -417,6 +454,15 @@ def approve_pending_edit(id):
         return error_response(404)
     if not edit.pending_approval:
         return error_response(409)
+    # only if submitter is owner or has edit access (and isn't a temp user)
+    # check if sender is allowed to delete
+    # can delete if user is owner of recipe or has edit access
+    submitter = token_auth.current_user()
+    if submitter.id != edit.recipe.user_id:
+        permission = model.Permission.get_by_user_and_recipe(submitter.id, edit.recipe_id)
+        if not permission or not permission.can_edit or submitter.is_temp_user:
+            return error_response(403)
+
     now = datetime.now()
     edit.pending_approval = False
     edit.commit_date = now
@@ -443,16 +489,43 @@ def delete_experiment(id):
     # can delete if user is owner of recipe, has edit access, or is committer of experiment
     if submitter.id != this_experiment.recipe.user_id and this_experiment.commit_by != submitter.id:
         permission = model.Permission.get_by_user_and_recipe(submitter.id, this_experiment.recipe_id)
-        if not permission or not permission.can_edit:
+        if not permission or not permission.can_edit or submitter.is_temp_user:
             return error_response(403)
     
     # delete experiment
     db.session.delete(this_experiment)
     db.session.commit()
-    return 'Experiment successfully deleted', 204
+    return 'Experiment successfully deleted', 200
 
-# @app.route('/api/experiments/<id>', methods=['PUT']) or PATCH?
-# @token_auth.login_required()
+@app.route('/api/experiments/<id>', methods=['PUT'])
+@token_auth.login_required()
+def edit_experiment(id):
+    # get experiment from server by id
+    this_experiment = model.Experiment.get_by_id(id)
+    submitter = token_auth.current_user()
+    # handle if experiment does not exist
+    if not this_experiment:
+        return error_response(404)
+    # can edit if user is owner of recipe, has edit access, or is committer of experiment
+    if submitter.id != this_experiment.recipe.user_id and this_experiment.commit_by != submitter.id:
+        permission = model.Permission.get_by_user_and_recipe(submitter.id, this_experiment.recipe_id)
+        if not permission or not permission.can_edit or submitter.is_temp_user:
+            return error_response(403)
+    
+    # parse out POST params
+    commit_msg = request.form.get('commit_msg')
+    notes = request.form.get('notes')
+    date = request.form.get('date')
+    committer = request.form.get('commit_by')
+
+    # edit experiment
+    this_experiment.commit_msg = commit_msg
+    this_experiment.notes = notes
+    this_experiment.commit_date = date
+    this_experiment.commit_by = committer
+    db.session.commit(this_experiment)
+    return 'Experiment successfully updated', 200
+    # return the updated experiment?
 
 @app.route('/api/extract-recipe')
 def extract_recipe_from_url():
