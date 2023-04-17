@@ -226,9 +226,10 @@ def create_new_exp(id):
     # if this_recipe.owner.id != session.get('user_id'):
     #     flash('You are not allowed to add an experiment to that recipe!','danger')
     #     return render_template('404.html')
-    permission = model.Permission.get_by_user_and_recipe(submitter.id, id)
-    if not permission or not(permission.can_experiment or this_recipe.user_id == submitter.id):
-        return error_response(403)
+    if this_recipe.user_id != submitter.id:
+        permission = model.Permission.get_by_user_and_recipe(submitter.id, id)
+        if not permission or not permission.can_experiment:
+            return error_response(403)
     
     # db changes
     new_experiment = model.Experiment.create(this_recipe, commit_msg, notes, now,
@@ -254,16 +255,16 @@ def create_new_edit(id):
     pending_approval = False
     
     # check that submitter is allowed to add a new edit to given recipe
-    permission = model.Permission.get_by_user_and_recipe(submitter.id, id)
-    if not permission or not (permission.can_experiment or this_recipe.user_id == submitter.id):
-        return error_response(403)
-    if not permission.can_edit and permission.can_experiment:
-        # submit for approval, basically pending approval flag is True,
-        # and commit date is empty
-        # and recipe last_modified is not changed
-        now = None
-        pending_approval = True
-        pass
+    if this_recipe.user_id != submitter.id:
+        permission = model.Permission.get_by_user_and_recipe(submitter.id, id)
+        if not permission or not permission.can_experiment:
+            return error_response(403)
+        if not permission.can_edit and permission.can_experiment:
+            # submit for approval, basically pending approval flag is True,
+            # and commit date is empty
+            # and recipe last_modified is not changed
+            now = None
+            pending_approval = True
 
     # db changes
     new_edit = model.Edit.create(this_recipe,
