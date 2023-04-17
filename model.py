@@ -211,8 +211,8 @@ class Experiment(DictableColumn, db.Model):
 
     ## Class CRUD Methods
     @classmethod
-    def create(cls, parent_recipe, commit_msg, notes, commit_date,
-               create_date=None, committer: User|None=None):
+    def create(cls, parent_recipe: Recipe, commit_msg: str, notes: str,
+               commit_date: datetime, create_date: datetime, committer: User):
         """Create and return a new experiment"""
         return cls(recipe=parent_recipe, commit_msg=commit_msg,
                    notes=notes, commit_date=commit_date, 
@@ -265,10 +265,11 @@ class Edit(DictableColumn, db.Model):
     ## Class CRUD Methods
     @classmethod
     def create(cls, recipe: Recipe, title: str, desc: str, ingredients: str, 
-               instructions: str, img_url: str, commit_date: datetime, committer: User|None=None) -> 'Edit':
+               instructions: str, img_url: str, commit_date: datetime|None, 
+               committer: User|None=None, pending_approval: bool = False) -> 'Edit':
         return cls(recipe=recipe, title=title, description=desc,
                    ingredients=ingredients, instructions=instructions,
-                   img_url=img_url,
+                   img_url=img_url, pending_approval=pending_approval,
                    commit_date=commit_date, committer=committer)
     
     @classmethod
@@ -298,6 +299,10 @@ class Permission(db.Model):
     @classmethod
     def get_by_user_and_recipe(cls, user_id, recipe_id):
         return cls.query.get({'user_id': user_id, 'recipe_id':recipe_id})
+    
+    @classmethod
+    def create(cls, user_id, recipe_id, can_experiment=True, can_edit=True):
+        return cls(user_id=user_id,recipe_id=recipe_id, can_experiment=can_experiment, can_edit=can_edit)
 
 # CONNECTING TO DB
 def connect_to_db(flask_app, db_uri="test", echo=True):

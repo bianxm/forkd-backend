@@ -199,6 +199,9 @@ def read_recipe_timeline(id):
 @token_auth.login_required()
 def delete_recipe(id):
     this_recipe = model.Recipe.get_by_id(id)
+    # if recipe doesnt exist
+    if not this_recipe:
+        return error_response(404)
 
     # check if sender is allowed to delete this recipe
     if token_auth.current_user() != this_recipe.owner:
@@ -211,19 +214,20 @@ def delete_recipe(id):
 # POST -- Create a new experiment
 @app.route('/api/recipes/<id>', methods=['POST'])
 @token_auth.login_required()
-def submit_new_exp(id):
+def create_new_exp(id):
     # parse out POST params
     commit_msg = request.form.get('commit-msg')
     notes = request.form.get('notes')
     now = datetime.now()
     this_recipe = model.Recipe.get_by_id(id)
+    submitter = token_auth.current_user()
 
     # check that submitter is allowed to add a new experiment to given recipe
     # if this_recipe.owner.id != session.get('user_id'):
     #     flash('You are not allowed to add an experiment to that recipe!','danger')
     #     return render_template('404.html')
-    permission = model.Permission.get_by_user_and_recipe(token_auth.current_user().id, id)
-    if not (getattr(permission, 'can_experiment', False) or this_recipe.owner == token_auth.current_user()):
+    permission = model.Permission.get_by_user_and_recipe(submitter.id, id)
+    if not permission or not(permission.can_experiment or this_recipe.user_id == submitter.id):
         return error_response(403)
     
     # db changes
@@ -237,7 +241,7 @@ def submit_new_exp(id):
 # PUT (or PATCH?) -- Create a new edit
 @app.route('/api/recipes/<id>', methods=['PUT']) #or PATCH?
 @token_auth.login_required()
-def submit_new_edit(id):
+def create_new_edit(id):
     # parse out POST params
     title = request.form.get('title')
     description = request.form.get('description')
@@ -246,19 +250,30 @@ def submit_new_edit(id):
     img_url = request.form.get('img-url')
     now = datetime.now()
     this_recipe = model.Recipe.get_by_id(id)
+    submitter = token_auth.current_user()
+    pending_approval = False
     
     # check that submitter is allowed to add a new edit to given recipe
-    permission = model.Permission.get_by_user_and_recipe(token_auth.current_user().id, id)
-    if not (getattr(permission, 'can_edit', False) or this_recipe.owner == token_auth.current_user()):
+    permission = model.Permission.get_by_user_and_recipe(submitter.id, id)
+    if not permission or not (permission.can_experiment or this_recipe.user_id == submitter.id):
         return error_response(403)
+    if not permission.can_edit and permission.can_experiment:
+        # submit for approval, basically pending approval flag is True,
+        # and commit date is empty
+        # and recipe last_modified is not changed
+        now = None
+        pending_approval = True
+        pass
 
     # db changes
     new_edit = model.Edit.create(this_recipe,
                                  title, description,
                                  ingredients, instructions,
                                  img_url,
-                                 now, token_auth.current_user()) # create new edit
-    this_recipe.update_last_modified(now) # update recipe's last_modified field
+                                 now, submitter,
+                                 pending_approval) # create new edit
+    if now:
+        this_recipe.update_last_modified(now) # update recipe's last_modified field
     model.db.session.add_all([new_edit, this_recipe])
     model.db.session.commit()
     return 'Experiment successfully created', 201
@@ -270,12 +285,98 @@ def submit_new_edit(id):
 @app.route('/api/recipes/<recipe_id>/permissions')
 @token_auth.login_required()
 def get_permissions(recipe_id):
-    pass
+    response = dict()
+    submitter = token_auth.current_user()
+    recipe = model.Recipe.get_by_id(recipe_id)
+    permission = None
+    if submitter is not recipe.owner:
+        permission = model.Permission.get_by_user_and_recipe(submitter.id, recipe_id)
+        if not (permission or recipe.is_public):
+            return error_response(403)
+    response['is_public'] = recipe.is_public
+    response['is_experiments_public'] = recipe.is_experiments_public
+    # if viewer is owner, or has edit access:
+    # if submitter is recipe.owner or 
+    if recipe.owner == submitter or permission.can_edit:
+        # show shared_with
+        shared_with = []
+        for row in ph.get_recipe_shared_with(recipe):
+            this_dict = dict()
+            this_dict['username'] = row.username
+            this_dict['can_edit'] = row.can_edit
+            this_dict['can_experiment'] = row.can_experiment 
+            shared_with.append(this_dict)
+        response['shared_with'] = shared_with
+    return response
 # {is_public: t/f, is_experiments_public: t/f, 
-# shared_with: [{id: int, username: int, can_experiment: t/f, can_edit: t/f}]}
+# shared_with: [{username: int, can_experiment: t/f, can_edit: t/f}]}
 
 # POST - create new permission (give new user a new permission)
+# do it one by one
+@app.route('/api/recipes/<recipe_id>/permissions', methods=['POST'])
+@token_auth.login_required()
+def add_permission(recipe_id):
+    # parse out POST params
+    new_user_id = request.form.get('user_id')
+    can_experiment = request.form.get('can_experiment')
+    can_edit = request.form.get('can_edit')
+    submitter = token_auth.current_user()
+    recipe = model.Recipe.get_by_id(recipe_id)
+    
+    ## input validation
+    # can_edit can only be True if can_experiment is also True
+    if can_edit and not can_experiment:
+        return error_response(400)
+    # only if submitter is owner or can_edit
+    if recipe.user_id!=submitter.id:
+        submitters_p = model.Permission.get_by_user_and_recipe(submitter.id, recipe_id)
+        if (not submitters_p) or (not submitters_p.can_edit):
+            return error_response(403)
+    # if association already exists, error out (409 - Conflict)
+    if model.Permission.get_by_user_and_recipe(new_user_id, recipe_id):
+        return error_response(409)
+
+    # otherwise, make a new permission row
+    new_permission = model.Permission.create(new_user_id, recipe_id,can_experiment,can_edit)
+    db.session.add(new_permission)
+    db.session.commit()
+    return 'New permission added', 204
+
 # PATCH - edit permission level
+@app.route('/api/recipes/<recipe_id>/permissions', methods=['PUT'])
+@token_auth.login_required()
+def update_or_delete_permission(recipe_id):
+    # parse out POST params
+    new_user_id = request.form.get('user_id')
+    submitter = token_auth.current_user()
+    ## TODO CONVERT THESE
+    can_experiment = request.form.get('can_experiment')
+    can_edit = request.form.get('can_edit')
+    recipe = model.Recipe.get_by_id(recipe_id)
+
+    ## validation
+    # only if submitter is owner or can_edit
+    if recipe.user_id!=submitter.id:
+        submitters_p = model.Permission.get_by_user_and_recipe(submitter.id, recipe_id)
+        if (not submitters_p) or (not submitters_p.can_edit):
+            return error_response(403)
+    # if association doesn't exist, error out (404 - Not Found)
+    permission = model.Permission.get_by_user_and_recipe(new_user_id, recipe_id)
+    if not permission:
+        return error_response(409)
+
+    # otherwise, update permission
+    # if can_edit and can_experiment both set to False, delete the row
+    if not can_edit and not can_experiment: # perhaps set to 1 or 0? anyway just remember need to cast the form.get
+        # delete the permission
+        db.session.delete(permission)
+    else:
+        # edit the permission
+        permission.can_edit = can_edit
+        permission.can_experiment = can_experiment
+        db.session.add(permission)
+    db.session.commit()
+    return 'Permission modified', 200
 
 ################ Endpoint '/api/edits/<id>' ############################
 # @app.route('/api/edits/<id>')
@@ -286,22 +387,42 @@ def get_permissions(recipe_id):
 def delete_edit(id):
     # get experiment from server by id
     this_edit = model.Edit.get_by_id(id)
+    submitter = token_auth.current_user()
     # handle if edit does not exist
+    if not this_edit:
+        return error_response(404)
     # handle if first edit -- CANNOT DELETE
+    if this_edit == this_edit.recipe.edits[-1]:
+        return error_response(409, 'Cannot delete creation edit')
 
     # check if sender is allowed to delete
     # can delete if user is owner of recipe or has edit access
-    if token_auth.current_user().id != this_edit.recipe.user_id:
-        return error_response(403)
+    if submitter.id != this_edit.recipe.user_id:
+        permission = model.Permission.get_by_user_and_recipe(submitter.id, this_edit.recipe_id)
+        if not permission or not permission.can_edit:
+            return error_response(403)
     
-    # delete experiment
+    # delete edit
     db.session.delete(this_edit)
     db.session.commit()
     return 'Edit successfully deleted', 204
 
 
-# @app.route('/api/edits/<id>', methods=['PUT']) or PATCH?
-# @token_auth.login_required()
+@app.route('/api/edits/<id>', methods=['PATCH'])
+@token_auth.login_required()
+def approve_pending_edit(id):
+    edit = model.Edit.get_by_id(id)
+    if not edit:
+        return error_response(404)
+    if not edit.pending_approval:
+        return error_response(409)
+    now = datetime.now()
+    edit.pending_approval = False
+    edit.commit_date = now
+    edit.recipe.update_last_modified(now)
+    db.session.add_all([edit, edit.recipe])
+    db.session.commit()
+    return 'Edit approved', 200
 
 ################ Endpoint '/api/experiments/<id>' ############################
 # @app.route('/api/experiments/<id>')
@@ -312,12 +433,17 @@ def delete_edit(id):
 def delete_experiment(id):
     # get experiment from server by id
     this_experiment = model.Experiment.get_by_id(id)
+    submitter = token_auth.current_user()
     # handle if experiment does not exist
+    if not this_experiment:
+        return error_response(404)
 
     # check if sender is allowed to delete
     # can delete if user is owner of recipe, has edit access, or is committer of experiment
-    if token_auth.current_user().id != this_experiment.recipe.user_id:
-        return error_response(403)
+    if submitter.id != this_experiment.recipe.user_id and this_experiment.commit_by != submitter.id:
+        permission = model.Permission.get_by_user_and_recipe(submitter.id, this_experiment.recipe_id)
+        if not permission or not permission.can_edit:
+            return error_response(403)
     
     # delete experiment
     db.session.delete(this_experiment)

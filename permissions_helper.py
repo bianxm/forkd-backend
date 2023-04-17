@@ -28,14 +28,17 @@ def get_viewable_recipes(owner_id: int, viewer_id: int | None) -> list[Recipe]:
     union_query = select(Recipe).from_statement(union_query)
     return db.session.scalars(union_query).all()
 
+def get_recipe_shared_with(recipe: Recipe) -> list[User]:
+    stmt = select(User.username, Permission.can_edit, Permission.can_experiment).join(User.permissions).where(Permission.recipe_id == recipe.id)
+    return db.session.execute(stmt)
+
 ## Given a user('s id) and a recipe id, return whether they can view it (bool)
-# two queries for one bool value.... probably don't use this
-def can_user_view(user_id: int, recipe_id: int) -> bool:
-    this_recipe = Recipe.get_by_id(recipe_id)
-    if this_recipe.is_public:
+def can_user_view(user: User, recipe: Recipe) -> bool:
+    # this_recipe = Recipe.get_by_id(recipe_id)
+    if recipe.is_public:
         return True
-    select_permission = select(Permission).where(Permission.user_id==user_id).where(Permission.recipe_id==recipe_id)
-    return db.session.execute(select_permission).one_or_none()
+    select_permission = select(Permission).where(Permission.user_id==user.id).where(Permission.recipe_id==recipe.id)
+    return bool(db.session.execute(select_permission).one_or_none())
 
 ## Given a user's id and a recipe id, 
 # return a list of timeline items (recipes and edits) in descending chrono order
@@ -77,7 +80,12 @@ def get_timeline(viewer_id: int | None, recipe_id: int): # -> list('Edit'|'Exper
 ## Given a user('s id) and a recipe id, return whether they can submit an experiment (bool)
 ## Use to check on server-side POST - CREATE EXPERIMENT
 
-## Given a user('s id) and a recipe id, return whether they can submit an edit (bool)
+## Given a user('s id) and a recipe id, return whether they can edit (bool)
+# def can_user_edit(user: User, recipe: Recipe) -> bool:
+#     if recipe.is_public:
+#         return True
+#     select_permission = select(Permission).where(Permission.user_id==user.id).where(Permission.recipe_id==recipe.id)
+#     return bool(db.session.execute(select_permission).one_or_none())
     # if no, when they submit that experiment, there's a pending_approval flag
 ## Use to check on server-side POST - CREATE EDIT
 
