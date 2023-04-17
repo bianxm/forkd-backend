@@ -11,6 +11,7 @@ import requests
 from flask_httpauth import HTTPBasicAuth, HTTPTokenAuth
 from werkzeug.http import HTTP_STATUS_CODES
 import permissions_helper as ph
+import re
 
 load_dotenv()
 SPOONACULAR_KEY = os.environ['SPOONACULAR_KEY']
@@ -88,7 +89,7 @@ def create_user():
     
     ### input validation
     # validate that fields are not empty!!!!
-    if not given_email or not given_password or not given_username:
+    if not all([given_email, given_password, given_username]) or re.match(given_username, r'^[A-Za-z0-9_-]+$'):
         return error_response(400)
     # validate that email or username not already taken
     if model.User.get_by_email(given_email):
@@ -112,25 +113,21 @@ def create_user():
 @token_auth.login_required(optional=True)
 def read_user_profile(username):
     owner = model.User.get_by_username(username)
-    viewer = token_auth.current_user()
     if not owner:
         return error_response(404)
+
     user_details = owner.to_dict()
+    viewer = token_auth.current_user()
     
-    # this is for if viewer is not the owner!!!
     if viewer is not owner:
         viewable_recipes = ph.get_viewable_recipes(owner.id, viewer.id if viewer else None)
-        recipe_list = []
-        for recipe in viewable_recipes:
-            recipe_dict= recipe.to_dict() 
-            recipe_dict['title'] = recipe.edits[0].title
-            recipe_dict['description'] = recipe.edits[0].description
-            recipe_dict['img_url'] = recipe.edits[0].img_url
-            recipe_list.append(recipe_dict)
+        user_details['recipes'] = [recipe.to_dict() for recipe in viewable_recipes]
     else:
         # return everything the user owns, plus everything shared with them
-        pass
-    user_details['recipes'] = recipe_list
+        own_recipes = owner.recipes
+        shared_recipes = ph.get_shared_with_me(owner.id)
+        user_details['my_recipes'] = [recipe.to_dict() for recipe in own_recipes]
+        user_details['my_recipes'] = [recipe.to_dict() for recipe in shared_recipes]
     return user_details
 
 # DELETE -- Delete this user
@@ -173,8 +170,9 @@ def create_new_recipe():
 
     # db changes
     newRecipe = model.Recipe.create(owner=submitter, modified_on=now, 
+                                    is_public=is_public, is_experiments_public=is_experiments_public,
                                     source_url=given_url, forked_from=forked_from_id) # create recipe
-    model.Edit.create(newRecipe, title, description, ingredients, instructions, now) # create first edit
+    model.Edit.create(newRecipe, title, description, ingredients, instructions, img_url, now, submitter) # create first edit
     model.db.session.add(newRecipe)
     model.db.session.commit()
     return 'Recipe successfully created', 201
@@ -229,7 +227,8 @@ def submit_new_exp(id):
         return error_response(403)
     
     # db changes
-    new_experiment = model.Experiment.create(this_recipe, commit_msg, notes, now) # create experiment
+    new_experiment = model.Experiment.create(this_recipe, commit_msg, notes, now,
+                                             now, token_auth.current_user()) # create experiment
     this_recipe.update_last_modified(now) # update recipe's last_modified field
     model.db.session.add_all([new_experiment, this_recipe])
     model.db.session.commit()
@@ -244,6 +243,7 @@ def submit_new_edit(id):
     description = request.form.get('description')
     ingredients = request.form.get('ingredients')
     instructions = request.form.get('instructions')
+    img_url = request.form.get('img-url')
     now = datetime.now()
     this_recipe = model.Recipe.get_by_id(id)
     
@@ -256,7 +256,8 @@ def submit_new_edit(id):
     new_edit = model.Edit.create(this_recipe,
                                  title, description,
                                  ingredients, instructions,
-                                 now) # create new edit
+                                 img_url,
+                                 now, token_auth.current_user()) # create new edit
     this_recipe.update_last_modified(now) # update recipe's last_modified field
     model.db.session.add_all([new_edit, this_recipe])
     model.db.session.commit()
@@ -266,9 +267,15 @@ def submit_new_edit(id):
 
 ########### Endpoint '/api/recipes/<id>/permissions' ###################
 # GET - return is_public, is_experiments_public, and list of users with permissions
+@app.route('/api/recipes/<recipe_id>/permissions')
+@token_auth.login_required()
+def get_permissions(recipe_id):
+    pass
+# {is_public: t/f, is_experiments_public: t/f, 
+# shared_with: [{id: int, username: int, can_experiment: t/f, can_edit: t/f}]}
+
 # POST - create new permission (give new user a new permission)
 # PATCH - edit permission level
-# DELETE - revoke a permission
 
 ################ Endpoint '/api/edits/<id>' ############################
 # @app.route('/api/edits/<id>')
@@ -283,13 +290,14 @@ def delete_edit(id):
     # handle if first edit -- CANNOT DELETE
 
     # check if sender is allowed to delete
+    # can delete if user is owner of recipe or has edit access
     if token_auth.current_user().id != this_edit.recipe.user_id:
         return error_response(403)
     
     # delete experiment
     db.session.delete(this_edit)
     db.session.commit()
-    return 'Edit successfully deleted', 200
+    return 'Edit successfully deleted', 204
 
 
 # @app.route('/api/edits/<id>', methods=['PUT']) or PATCH?
@@ -307,13 +315,14 @@ def delete_experiment(id):
     # handle if experiment does not exist
 
     # check if sender is allowed to delete
+    # can delete if user is owner of recipe, has edit access, or is committer of experiment
     if token_auth.current_user().id != this_experiment.recipe.user_id:
         return error_response(403)
     
     # delete experiment
     db.session.delete(this_experiment)
     db.session.commit()
-    return 'Experiment successfully deleted', 200
+    return 'Experiment successfully deleted', 204
 
 # @app.route('/api/experiments/<id>', methods=['PUT']) or PATCH?
 # @token_auth.login_required()

@@ -165,6 +165,14 @@ class Recipe(DictableColumn, db.Model):
     def update_last_modified(self, modified_date: datetime) -> None:
         self.last_modified = modified_date
     
+    def to_dict(self):
+        dirty_dict = super().to_dict()
+        dirty_dict['title'] = self.edits[0].title
+        dirty_dict['description'] = self.edits[0].description
+        dirty_dict['img_url'] = self.edits[0].img_url
+
+        return dirty_dict
+    
 
 # Experiments
 class Experiment(DictableColumn, db.Model):
