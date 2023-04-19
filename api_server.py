@@ -73,6 +73,11 @@ def revoke_token():
     db.session.commit()
     return '', 204
 
+@app.route('/api/me')
+@token_auth.login_required
+def get_user():
+    return {'username' : token_auth.current_user().username}
+
 ################ Endpoint '/api/users' ############################
 # GET -- return all users TO PAGINATE
 @app.route('/api/users')

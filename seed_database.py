@@ -45,18 +45,20 @@ for i in range(1,4):
                                       f"desc: User{i}'s Recipe {j}",
                                       f'User{i} Recipe{j} eggs and milk and stuff',
                                       f'User{i} Recipe{j} mix ingredients and cook',
-                                      now)
+                                      '',
+                                      now, this_user)
         first_edit = model.Edit.create(this_recipe, 
                                       f"User{i}'s Recipe {j}",
                                       f"desc: User{i}'s Recipe {j}",
                                       f'User{i} Recipe{j} Edit!!',
                                       f'User{i} Recipe{j} Edit!!',
-                                      now+hour*5)
+                                      '',
+                                      now+hour*5, this_user)
         for k in range(1,3):
             this_exp = model.Experiment.create(this_recipe,
                                 f'Experiment {k}',
                                 f'It went ok experiment {k}',
-                                now+hour*k)
+                                now+hour*k, now+hour*k, this_user)
             model.db.session.add(this_exp)
         
     model.db.session.add(this_user)
