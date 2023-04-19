@@ -126,7 +126,7 @@ class TestPublicUser(unittest.TestCase):
 class TestSignUp(unittest.TestCase):
     def test_api_register_user_empty_fields(self):
         initial_user_count = model.User.query.count()
-        response = client.post('/api/users', data={
+        response = client.post('/api/users', json={
             'email': '',
             'username': '',
             'password': ''
@@ -136,7 +136,7 @@ class TestSignUp(unittest.TestCase):
 
     def test_api_register_existing_username(self):
         initial_user_count = model.User.query.count()
-        response = client.post('/api/users', data={
+        response = client.post('/api/users', json={
             'email': 'sojiro@leblanc.com',
             'username': 'joker',
             'password': 'password123'
@@ -147,7 +147,7 @@ class TestSignUp(unittest.TestCase):
     
     def test_api_register_existing_email(self):
         initial_user_count = model.User.query.count()
-        response = client.post('/api/users', data={
+        response = client.post('/api/users', json={
             'email': 'joker@tokyo.com',
             'username': 'sojiro',
             'password': 'password123'
@@ -159,7 +159,7 @@ class TestSignUp(unittest.TestCase):
     # TODO test registering a new user success
     def test_api_successful_register(self):
         initial_user_count = model.User.query.count()
-        response = client.post('/api/users', data={
+        response = client.post('/api/users', json={
             'email': 'sojiro@leblanc.com',
             'username': 'sojiro',
             'password': 'password123'
@@ -216,7 +216,7 @@ class TestCreateAndDelete(LoggedInUser, unittest.TestCase):
         self.initial_ed_count = len(self.recipe.edits)
 
     def test_create_new_recipe(self):
-        response = client.post('/api/recipes', data={
+        response = client.post('/api/recipes', json={
                 'title':'Testing Recipe Creation',
                 'ingredients':'Ingredients',
                 'instructions':'Instructions'
@@ -226,7 +226,7 @@ class TestCreateAndDelete(LoggedInUser, unittest.TestCase):
         self.assertEqual(self.user.recipes[0].edits[-1].title, 'Testing Recipe Creation')
     
     def test_create_new_experiment(self):
-        response = client.post(f'/api/recipes/{self.recipe.id}', data={
+        response = client.post(f'/api/recipes/{self.recipe.id}', json={
                 'commit-msg':'New experiment',
                 'notes':''
             }, headers = {'Authorization': f'Bearer {self.token}'})
@@ -235,7 +235,7 @@ class TestCreateAndDelete(LoggedInUser, unittest.TestCase):
         self.assertEqual(self.recipe.experiments[0].commit_msg,'New experiment')
 
     def test_create_new_edit(self):
-        response = client.put(f'/api/recipes/{self.recipe.id}', data={
+        response = client.put(f'/api/recipes/{self.recipe.id}', json={
                 'title':'New title'
             }, headers = {'Authorization': f'Bearer {self.token}'})
         self.assertEqual(response.status_code, 201, 'Server should return 201')
@@ -243,7 +243,7 @@ class TestCreateAndDelete(LoggedInUser, unittest.TestCase):
         self.assertEqual(self.recipe.edits[0].title,'New title')
 
     def test_delete_edit(self):
-        response1 = client.put(f'/api/recipes/{self.recipe.id}', data={
+        response1 = client.put(f'/api/recipes/{self.recipe.id}', json={
                 'title':'New title'
             }, headers = {'Authorization': f'Bearer {self.token}'})
         response = client.delete(f'/api/edits/{self.recipe.edits[0].id}',

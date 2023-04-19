@@ -88,9 +88,14 @@ def read_all_users():
 @app.route('/api/users', methods=['POST'])
 def create_user():
     # parse out POST params 
-    given_email = request.form.get('email')
-    given_username = request.form.get('username')
-    given_password = request.form.get('password')
+    params = request.get_json(force=True)
+    print(params)
+    given_email = params.get('email')
+    given_username = params.get('username')
+    given_password =  params.get('password')
+    # given_email = request.form.get('email')
+    # given_username = request.form.get('username')
+    # given_password = request.form.get('password')
     
     ### input validation
     # validate that fields are not empty!!!!
@@ -194,15 +199,25 @@ def delete_user(id):
 @token_auth.login_required()
 def create_new_recipe():
     # parse out POST params
-    title = request.form.get('title')
-    description = request.form.get('description')
-    ingredients = request.form.get('ingredients')
-    instructions = request.form.get('instructions')
-    given_url = request.form.get('url')
-    forked_from_id = request.form.get('forked-from') 
-    img_url = request.form.get('img-url') 
-    is_public = request.form.get('set-is-public')
-    is_experiments_public = request.form.get('set-is-exps-public')
+    params = request.get_json()
+    title = params.get('title')
+    description = params.get('description')
+    ingredients = params.get('ingredients')
+    instructions = params.get('instructions')
+    given_url = params.get('url')
+    forked_from_id = params.get('forked-from') 
+    img_url = params.get('img-url') 
+    is_public = params.get('set-is-public')
+    is_experiments_public = params.get('set-is-exps-public')
+    # title = request.form.get('title')
+    # description = request.form.get('description')
+    # ingredients = request.form.get('ingredients')
+    # instructions = request.form.get('instructions')
+    # given_url = request.form.get('url')
+    # forked_from_id = request.form.get('forked-from') 
+    # img_url = request.form.get('img-url') 
+    # is_public = request.form.get('set-is-public')
+    # is_experiments_public = request.form.get('set-is-exps-public')
 
 
     submitter = token_auth.current_user()
@@ -258,8 +273,11 @@ def delete_recipe(id):
 @token_auth.login_required()
 def create_new_exp(id):
     # parse out POST params
-    commit_msg = request.form.get('commit-msg')
-    notes = request.form.get('notes')
+    params = request.get_json()
+    commit_msg = params.get('commit-msg')
+    notes = params.get('notes')
+    # commit_msg = request.form.get('commit-msg')
+    # notes = request.form.get('notes')
     now = datetime.now()
     this_recipe = model.Recipe.get_by_id(id)
     submitter = token_auth.current_user()
@@ -286,11 +304,17 @@ def create_new_exp(id):
 @token_auth.login_required()
 def create_new_edit(id):
     # parse out POST params
-    title = request.form.get('title')
-    description = request.form.get('description')
-    ingredients = request.form.get('ingredients')
-    instructions = request.form.get('instructions')
-    img_url = request.form.get('img-url')
+    params = request.get_json()
+    title = params.get('title')
+    description = params.get('description')
+    ingredients = params.get('ingredients')
+    instructions = params.get('instructions')
+    img_url = params.get('img-url')
+    # title = request.form.get('title')
+    # description = request.form.get('description')
+    # ingredients = request.form.get('ingredients')
+    # instructions = request.form.get('instructions')
+    # img_url = request.form.get('img-url')
     now = datetime.now()
     this_recipe = model.Recipe.get_by_id(id)
     submitter = token_auth.current_user()
@@ -360,9 +384,13 @@ def read_permissions(recipe_id):
 @token_auth.login_required()
 def create_permission(recipe_id):
     # parse out POST params
-    new_user_id = request.form.get('user_id')
-    can_experiment = request.form.get('can_experiment')
-    can_edit = request.form.get('can_edit')
+    params = request.get_json()
+    new_user_id = params.get('user_id')
+    can_experiment = params.get('can_experiment')
+    can_edit = params.get('can_edit')
+    # new_user_id = request.form.get('user_id')
+    # can_experiment = request.form.get('can_experiment')
+    # can_edit = request.form.get('can_edit')
     submitter = token_auth.current_user()
     recipe = model.Recipe.get_by_id(recipe_id)
     
@@ -390,12 +418,16 @@ def create_permission(recipe_id):
 @token_auth.login_required()
 def update_or_delete_permission(recipe_id):
     # parse out POST params
-    new_user_id = request.form.get('user_id')
-    submitter = token_auth.current_user()
+    params = request.get_json()
+    new_user_id = params.get('user_id')
+    # new_user_id = request.form.get('user_id')
     ## TODO CONVERT THESE
-    can_experiment = request.form.get('can_experiment')
-    can_edit = request.form.get('can_edit')
+    can_experiment = params.get('can_experiment')
+    can_edit = params.get('can_edit')
+    # can_experiment = request.form.get('can_experiment')
+    # can_edit = request.form.get('can_edit')
     recipe = model.Recipe.get_by_id(recipe_id)
+    submitter = token_auth.current_user()
 
     ## validation
     # only if submitter is owner or can_edit
@@ -518,10 +550,15 @@ def edit_experiment(id):
             return error_response(403)
     
     # parse out POST params
-    commit_msg = request.form.get('commit_msg')
-    notes = request.form.get('notes')
-    date = request.form.get('date')
-    committer = request.form.get('commit_by')
+    params = request.get_json()
+    commit_msg = params.get('commit_msg')
+    notes = params.get('notes')
+    date = params.get('date')
+    committer = params.get('commit_by')
+    # commit_msg = request.form.get('commit_msg')
+    # notes = request.form.get('notes')
+    # date = request.form.get('date')
+    # committer = request.form.get('commit_by')
 
     # edit experiment
     this_experiment.commit_msg = commit_msg
