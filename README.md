@@ -1,22 +1,22 @@
 # Forkd: A Recipe Journal and (soft) Version Control System
 
-An app where users can save, record 'experiments', and track edits for recipes 
+An app where users can save, record 'experiments', and track edits for recipes
 
-## Technologies Required
+This is the backend repo corresponding to the frontend [here](https://github.com/bianxm/forkd-frontend) (still under construction)
 
-- [JSDiff](https://github.com/kpdecker/jsdiff) to get diffs
-- [Diff2HTML](https://github.com/rtfpessoa/diff2html) to display diffs
+## Technologies Used
+- PostgreSQL database
+- Flask backend
 - [Spoonacular API](https://spoonacular.com/food-api) 
-- (stretch goal) [Mergely](https://www.mergely.com/) for real-time diff highlighting
 
 ## Data Model
 
-[Here](https://dbdiagram.io/d/6428e0565758ac5f1725ff32), 4-5 tables
+[Here](https://dbdiagram.io/d/6428e0565758ac5f1725ff32), 5 tables
 * Users table - email, password, username
 * Recipes table - title, description, some metadata
 * Experiments table -  title, dates, notes
-* Edits table, historical data for recipe edits
-* (for stretch features) Permissions table
+* Edits table - historical data for recipe edits
+* Permissions table - associating a recipe and a user, and the user's permission level for that recipe
 
 ## Roadmap
 
@@ -31,26 +31,19 @@ An app where users can save, record 'experiments', and track edits for recipes
 - [x] Users can add "edits" under each recipe, which tracks the changes they've made to the recipe
   - [JSDiff](https://github.com/kpdecker/jsdiff) to get diffs
   - [Diff2HTML](https://github.com/rtfpessoa/diff2html) to display diffs
+- [x] Fork a recipe (that you can then add your own experiments to)
+- [x] Spoonacular API: Get a recipe from the internet
 
 
 ### 2.0
-
-- [x] Fork a different user's recipe (that you can then add your own experiments to)
-- [x] Spoonacular API: Get a recipe from the internet
-- [ ] Add an experiment plan -- something to change, with results to be put in later
-
-### Nice-to-haves
-
-- React
-- Permissions and sharing 
-  - Users can view other users' recipes, but not their experiments!
+- [x] Rewrite backend as RESTful API
+- [x] Add permissions and sharing functionality to backend
+  - Users can view other users' public recipes, but not their experiments!
   - set all your experiments for a recipe to be public as well
   - share your recipe with a different user, and they can add experiments to the recipe 
-- Owner to approve edits from collaborators
+- [ ] Test coverage (currently 57%)
+- [ ] React SPA frontend ([in progress](https://github.com/bianxm/forkd-frontend))
+
+### Nice-to-haves
 - Recipe tagging
-- Real-time diff highlighting ([Mergely](https://www.mergely.com/))
 - Migrate to SQLAlchemy v2.x
-
-## Notes
-
-N/A
