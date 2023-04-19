@@ -239,6 +239,11 @@ def create_new_recipe():
 @app.route('/api/recipes/<id>')
 @token_auth.login_required(optional=True)
 def read_recipe_timeline(id):
+    query_owner = request.args.get('owner')
+    recipe = model.Recipe.get_by_id(id)
+    recipe_owner = recipe.owner.username
+    if query_owner != recipe_owner:
+        return error_response(404)
     # viewable_recipes = ph.get_viewable_recipes(id, token_auth.current_user().id if token_auth.current_user() else None)
     response = dict()
     timeline_items = ph.get_timeline(token_auth.current_user().id if token_auth.current_user() else None, id)
@@ -246,9 +251,14 @@ def read_recipe_timeline(id):
         return error_response(404)
     if not timeline_items[0]:
         return error_response(403, 'User cannot view this recipe')
-    response['timeline_items'] = [item.to_dict() for item in timeline_items[0]]
+    # response['timeline_items'] = [item.to_dict() for item in timeline_items[0]]
+    response['timeline_items'] = timeline_items[0]
     response['can_experiment'] = timeline_items[1]
     response['can_edit'] = timeline_items[2]
+    response['owner'] = recipe_owner
+    response['source_url'] = recipe.source_url
+    response['forked_from'] = recipe.forked_from
+    response['last_modified'] = recipe.last_modified
     return response
 
 # DELETE -- Delete given recipe
@@ -598,5 +608,5 @@ def extract_recipe_from_url():
 
 
 if __name__ == '__main__':
-    connect_to_db(app, 'forkd-p')
+    connect_to_db(app, 'forkd-p', False)
     app.run(host='0.0.0.0', debug=True)

@@ -55,10 +55,12 @@ def get_timeline(viewer_id: int | None, recipe_id: int): # -> list('Edit'|'Exper
     can_experiment = False
     can_edit = False
     this_permission = None
+    edits = [edit.to_dict() for edit in this_recipe.edits]
+    exps = [exp.to_dict() for exp in this_recipe.experiments]
     if this_recipe.user_id == viewer_id:
         can_experiment = True
         can_edit = True
-        timeline_items = this_recipe.edits + this_recipe.experiments
+        timeline_items = {'edits':edits, 'experiments':exps}
         return (timeline_items, can_experiment, can_edit)
     elif viewer_id is not None:
         this_permission = Permission.get_by_user_and_recipe(viewer_id, recipe_id) # returns the match, or None
@@ -67,10 +69,10 @@ def get_timeline(viewer_id: int | None, recipe_id: int): # -> list('Edit'|'Exper
             can_edit = this_permission.can_edit
     
     if this_recipe.is_public:
-        timeline_items = this_recipe.edits
+        timeline_items = {'edits':edits}
     
     if this_recipe.is_experiments_public or this_permission is not None:
-        timeline_items = this_recipe.edits + this_recipe.experiments # sort this!!!
+        timeline_items = {'edits':edits, 'experiments':exps}
     # return {'timeline_items': timeline_items,
     #         'can_experiment': can_experiment,
     #         'can_edit': can_edit}
