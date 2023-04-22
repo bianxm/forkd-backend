@@ -140,7 +140,7 @@ def submit_new_recipe():
 
     # db changes
     newRecipe = model.Recipe.create(owner=submitter, modified_on=now, source_url=given_url, forked_from=forked_from_id) # create recipe
-    model.Edit.create(newRecipe, title, description, ingredients, instructions, now) # create first edit
+    model.Edit.create(newRecipe, title, description, ingredients, instructions, "", now) # create first edit
     model.db.session.add(newRecipe)
     model.db.session.commit()
     return redirect(f"/{session.get('username')}")

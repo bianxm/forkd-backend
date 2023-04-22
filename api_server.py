@@ -81,7 +81,7 @@ def revoke_token():
 @token_auth.login_required
 def get_user():
     if token_auth.current_user() == 'expired':
-        return '', 403
+        return {}, 403
     return token_auth.current_user().to_dict()
 
 ################ Endpoint '/api/users' ############################
@@ -128,12 +128,17 @@ def create_user():
 @app.route('/api/users/<username>')
 @token_auth.login_required(optional=True)
 def read_user_profile(username):
+    viewer = token_auth.current_user()
+    status = 200
+    if viewer == 'expired': 
+        status = 401
+        viewer = None
+
     owner = model.User.get_by_username(username)
     if not owner:
         return error_response(404)
 
     user_details = owner.to_dict()
-    viewer = token_auth.current_user()
     
     if viewer is not owner:
         viewable_recipes = ph.get_viewable_recipes(owner.id, viewer.id if viewer else None)
@@ -144,7 +149,7 @@ def read_user_profile(username):
         shared_recipes = ph.get_shared_with_me(owner.id)
         user_details['recipes'] = [recipe.to_dict() for recipe in own_recipes]
         user_details['shared_with_me'] = [recipe.to_dict() for recipe in shared_recipes]
-    return user_details
+    return user_details, status
 
 # DELETE -- Delete this user
 @app.route('/api/users/<id>', methods=['DELETE'])
