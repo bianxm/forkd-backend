@@ -47,7 +47,8 @@ def verify_password(login: str, password: str) -> model.User:
 
 @basic_auth.error_handler
 def basic_auth_error(status):
-    return error_response(status)
+    # return error_response(status)
+    return '', 403
 
 @app.route('/api/tokens', methods=['POST']) # login - give a token
 @basic_auth.login_required
@@ -65,10 +66,13 @@ def verify_token(token):
 @token_auth.error_handler
 def token_auth_error(status):
     return error_response(status)
+    # return 'Access Denied', status
 
 @app.route('/api/tokens', methods=['DELETE']) # logout - revoke token
 @token_auth.login_required
 def revoke_token():
+    if token_auth.current_user() == 'expired':
+        return '', 204
     token_auth.current_user().revoke_token()
     db.session.commit()
     return '', 204
@@ -76,7 +80,9 @@ def revoke_token():
 @app.route('/api/me')
 @token_auth.login_required
 def get_user():
-    return {'username' : token_auth.current_user().username}
+    if token_auth.current_user() == 'expired':
+        return '', 403
+    return token_auth.current_user().to_dict()
 
 ################ Endpoint '/api/users' ############################
 # GET -- return all users TO PAGINATE
@@ -136,8 +142,8 @@ def read_user_profile(username):
         # return everything the user owns, plus everything shared with them
         own_recipes = owner.recipes
         shared_recipes = ph.get_shared_with_me(owner.id)
-        user_details['my_recipes'] = [recipe.to_dict() for recipe in own_recipes]
-        user_details['my_recipes'] = [recipe.to_dict() for recipe in shared_recipes]
+        user_details['recipes'] = [recipe.to_dict() for recipe in own_recipes]
+        user_details['shared_with_me'] = [recipe.to_dict() for recipe in shared_recipes]
     return user_details
 
 # DELETE -- Delete this user
@@ -145,6 +151,8 @@ def read_user_profile(username):
 @token_auth.login_required()
 def delete_user(id):
     submitter = token_auth.current_user()
+    if submitter == 'expired': 
+        return error_response(401)
     if submitter.id != id:
         return error_response(403)
     
@@ -198,6 +206,8 @@ def delete_user(id):
 @app.route('/api/recipes', methods=['POST'])
 @token_auth.login_required()
 def create_new_recipe():
+    if token_auth.current_user() == 'expired': 
+        return error_response(401)
     # parse out POST params
     params = request.get_json()
     title = params.get('title')
@@ -239,14 +249,19 @@ def create_new_recipe():
 @app.route('/api/recipes/<id>')
 @token_auth.login_required(optional=True)
 def read_recipe_timeline(id):
+    current_user = token_auth.current_user()
+    response_code = 200
+    if current_user == 'expired': 
+        current_user = None
+        response_code = 401
     query_owner = request.args.get('owner')
     recipe = model.Recipe.get_by_id(id)
     recipe_owner = recipe.owner.username
-    if query_owner != recipe_owner:
+    if query_owner and query_owner != recipe_owner:
         return error_response(404)
     # viewable_recipes = ph.get_viewable_recipes(id, token_auth.current_user().id if token_auth.current_user() else None)
     response = dict()
-    timeline_items = ph.get_timeline(token_auth.current_user().id if token_auth.current_user() else None, id)
+    timeline_items = ph.get_timeline(current_user.id if current_user else None, id)
     if not timeline_items:
         return error_response(404)
     if not timeline_items[0]:
@@ -259,12 +274,14 @@ def read_recipe_timeline(id):
     response['source_url'] = recipe.source_url
     response['forked_from'] = recipe.forked_from
     response['last_modified'] = recipe.last_modified
-    return response
+    return response, response_code
 
 # DELETE -- Delete given recipe
 @app.route('/api/recipes/<id>', methods=['DELETE'])
 @token_auth.login_required()
 def delete_recipe(id):
+    if token_auth.current_user() == 'expired':
+        return error_response(401)
     this_recipe = model.Recipe.get_by_id(id)
     # if recipe doesnt exist
     if not this_recipe:
@@ -282,6 +299,8 @@ def delete_recipe(id):
 @app.route('/api/recipes/<id>', methods=['POST'])
 @token_auth.login_required()
 def create_new_exp(id):
+    if token_auth.current_user() == 'expired':
+        return error_response(401)
     # parse out POST params
     params = request.get_json()
     commit_msg = params.get('commit-msg')
@@ -313,6 +332,8 @@ def create_new_exp(id):
 @app.route('/api/recipes/<id>', methods=['PUT']) #or PATCH?
 @token_auth.login_required()
 def create_new_edit(id):
+    if token_auth.current_user() == 'expired':
+        return error_response(401)
     # parse out POST params
     params = request.get_json()
     title = params.get('title')
@@ -362,6 +383,8 @@ def create_new_edit(id):
 @app.route('/api/recipes/<recipe_id>/permissions')
 @token_auth.login_required()
 def read_permissions(recipe_id):
+    if token_auth.current_user() == 'expired':
+        return error_response(401)
     response = dict()
     submitter = token_auth.current_user()
     recipe = model.Recipe.get_by_id(recipe_id)
@@ -393,6 +416,8 @@ def read_permissions(recipe_id):
 @app.route('/api/recipes/<recipe_id>/permissions', methods=['POST'])
 @token_auth.login_required()
 def create_permission(recipe_id):
+    if token_auth.current_user() == 'expired':
+        return error_response(401)
     # parse out POST params
     params = request.get_json()
     new_user_id = params.get('user_id')
@@ -427,6 +452,8 @@ def create_permission(recipe_id):
 @app.route('/api/recipes/<recipe_id>/permissions', methods=['PUT'])
 @token_auth.login_required()
 def update_or_delete_permission(recipe_id):
+    if token_auth.current_user() == 'expired':
+        return error_response(401)
     # parse out POST params
     params = request.get_json()
     new_user_id = params.get('user_id')
@@ -470,6 +497,8 @@ def update_or_delete_permission(recipe_id):
 @app.route('/api/edits/<id>', methods=['DELETE'])
 @token_auth.login_required()
 def delete_edit(id):
+    if token_auth.current_user() == 'expired':
+        return error_response(401)
     # get experiment from server by id
     this_edit = model.Edit.get_by_id(id)
     submitter = token_auth.current_user()
@@ -496,6 +525,8 @@ def delete_edit(id):
 @app.route('/api/edits/<id>', methods=['PATCH'])
 @token_auth.login_required()
 def approve_pending_edit(id):
+    if token_auth.current_user() == 'expired':
+        return error_response(401)
     edit = model.Edit.get_by_id(id)
     if not edit:
         return error_response(404)
@@ -525,6 +556,8 @@ def approve_pending_edit(id):
 @app.route('/api/experiments/<id>', methods=['DELETE'])
 @token_auth.login_required()
 def delete_experiment(id):
+    if token_auth.current_user() == 'expired':
+        return error_response(401)
     # get experiment from server by id
     this_experiment = model.Experiment.get_by_id(id)
     submitter = token_auth.current_user()
@@ -547,6 +580,8 @@ def delete_experiment(id):
 @app.route('/api/experiments/<id>', methods=['PUT'])
 @token_auth.login_required()
 def edit_experiment(id):
+    if token_auth.current_user() == 'expired':
+        return error_response(401)
     # get experiment from server by id
     this_experiment = model.Experiment.get_by_id(id)
     submitter = token_auth.current_user()
