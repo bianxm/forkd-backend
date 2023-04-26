@@ -212,7 +212,7 @@ def submit_new_edit():
     # db changes
     new_edit = model.Edit.create(this_recipe,
                                  title, description,
-                                 ingredients, instructions,
+                                 ingredients, instructions,'',
                                  now) # create new edit
     this_recipe.update_last_modified(now) # update recipe's last_modified field
     model.db.session.add_all([new_edit, this_recipe])
@@ -328,4 +328,4 @@ def delete_edit(id):
 
 if __name__ == '__main__':
     connect_to_db(app, 'forkd-p')
-    app.run(host='0.0.0.0', debug=True)
+    app.run(host='0.0.0.0', port="5001", debug=True)

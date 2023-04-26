@@ -220,10 +220,10 @@ def create_new_recipe():
     ingredients = params.get('ingredients')
     instructions = params.get('instructions')
     given_url = params.get('url')
-    forked_from_id = params.get('forked-from') 
-    img_url = params.get('img-url') 
-    is_public = params.get('set-is-public')
-    is_experiments_public = params.get('set-is-exps-public')
+    forked_from_id = params.get('forked_from') 
+    img_url = params.get('img_url') 
+    is_public = params.get('set_is_public')
+    is_experiments_public = params.get('set_is_exps_public')
     # title = request.form.get('title')
     # description = request.form.get('description')
     # ingredients = request.form.get('ingredients')
@@ -247,7 +247,7 @@ def create_new_recipe():
     model.Edit.create(newRecipe, title, description, ingredients, instructions, img_url, now, submitter) # create first edit
     model.db.session.add(newRecipe)
     model.db.session.commit()
-    return 'Recipe successfully created', 201
+    return {'message':'Recipe successfully created'}, 201
 
 ################ Endpoint '/api/recipes/<id>' ############################
 # GET -- return timeline-items list, can_edit bool, can_exp bool
@@ -279,6 +279,7 @@ def read_recipe_timeline(id):
     response['source_url'] = recipe.source_url
     response['forked_from'] = recipe.forked_from
     response['last_modified'] = recipe.last_modified
+    response['id'] = recipe.id
     return response, response_code
 
 # DELETE -- Delete given recipe
@@ -298,7 +299,7 @@ def delete_recipe(id):
     
     db.session.delete(this_recipe)
     db.session.commit()
-    return 'Recipe successfully deleted', 200
+    return {'message':'Recipe successfully deleted'}, 200
 
 # POST -- Create a new experiment
 @app.route('/api/recipes/<id>', methods=['POST'])
@@ -308,7 +309,7 @@ def create_new_exp(id):
         return error_response(401)
     # parse out POST params
     params = request.get_json()
-    commit_msg = params.get('commit-msg')
+    commit_msg = params.get('commit_msg')
     notes = params.get('notes')
     # commit_msg = request.form.get('commit-msg')
     # notes = request.form.get('notes')
@@ -331,7 +332,8 @@ def create_new_exp(id):
     this_recipe.update_last_modified(now) # update recipe's last_modified field
     model.db.session.add_all([new_experiment, this_recipe])
     model.db.session.commit()
-    return 'Experiment successfully created', 201
+    response = new_experiment.to_dict()
+    return response, 200
 
 # PUT (or PATCH?) -- Create a new edit
 @app.route('/api/recipes/<id>', methods=['PUT']) #or PATCH?
@@ -379,7 +381,7 @@ def create_new_edit(id):
         this_recipe.update_last_modified(now) # update recipe's last_modified field
     model.db.session.add_all([new_edit, this_recipe])
     model.db.session.commit()
-    return 'Experiment successfully created', 201
+    return {'message':'Experiment successfully created'}, 201
     
     # handle if recipe does not exist
 
@@ -443,17 +445,21 @@ def create_permission(recipe_id):
         submitters_p = model.Permission.get_by_user_and_recipe(submitter.id, recipe_id)
         if (not submitters_p) or (not submitters_p.can_edit):
             return error_response(403)
+    # check that user they want to add exists
+    if not model.User.get_by_id(new_user_id):
+        return error_response(404)
     # if association already exists, error out (409 - Conflict)
     if model.Permission.get_by_user_and_recipe(new_user_id, recipe_id):
         return error_response(409)
+    
 
     # otherwise, make a new permission row
     new_permission = model.Permission.create(new_user_id, recipe_id,can_experiment,can_edit)
     db.session.add(new_permission)
     db.session.commit()
-    return 'New permission added', 204
+    return {'message':'New permission added'}, 204
 
-# PATCH - edit permission level
+# PUT - edit permission level for a user
 @app.route('/api/recipes/<recipe_id>/permissions', methods=['PUT'])
 @token_auth.login_required()
 def update_or_delete_permission(recipe_id):
@@ -493,7 +499,41 @@ def update_or_delete_permission(recipe_id):
         permission.can_experiment = can_experiment
         db.session.add(permission)
     db.session.commit()
-    return 'Permission modified', 200
+    return{'message':'Permission modified'}, 200
+
+# PATCH - edit permission level for recipe globally
+@app.route('/api/recipes/<recipe_id>/permissions', methods=['PATCH'])
+@token_auth.login_required()
+def update_global_permissions(recipe_id):
+    submitter = token_auth.current_user()
+    recipe = model.Recipe.get_by_id(recipe_id)
+
+    # check if submitter is allowed to change permissions: owner or can_edit
+    if recipe.user_id!=submitter.id:
+        submitters_p = model.Permission.get_by_user_and_recipe(submitter.id, recipe_id)
+        if (not submitters_p) or (not submitters_p.can_edit):
+            return error_response(403)
+
+    # parse out POST params
+    params = request.get_json()
+    is_public = params.get('is_public')
+    is_experiments_public = params.get('is_experiments_public')
+
+    # if is_experiments_public is true, is_public has to be true
+    if is_experiments_public:
+        is_public = True
+    
+    # update recipe!
+    try:
+        recipe.is_public = is_public
+        recipe.is_experiments_public = is_experiments_public
+        db.session.add(recipe)
+        db.session.commit()
+
+        return {'message':'Global permissions successfully updated'}, 200
+    except:
+        return {'message':'Something went wrong'}, 500
+
 
 ################ Endpoint '/api/edits/<id>' ############################
 # @app.route('/api/edits/<id>')
@@ -524,7 +564,7 @@ def delete_edit(id):
     # delete edit
     db.session.delete(this_edit)
     db.session.commit()
-    return 'Edit successfully deleted', 200
+    return {'message': 'Edit successfully deleted'}, 200
 
 
 @app.route('/api/edits/<id>', methods=['PATCH'])
@@ -552,7 +592,7 @@ def approve_pending_edit(id):
     edit.recipe.update_last_modified(now)
     db.session.add_all([edit, edit.recipe])
     db.session.commit()
-    return 'Edit approved', 200
+    return {'message':'Edit approved'}, 200
 
 ################ Endpoint '/api/experiments/<id>' ############################
 # @app.route('/api/experiments/<id>')
@@ -580,7 +620,7 @@ def delete_experiment(id):
     # delete experiment
     db.session.delete(this_experiment)
     db.session.commit()
-    return 'Experiment successfully deleted', 200
+    return {'message': 'Experiment successfully deleted'}, 200
 
 @app.route('/api/experiments/<id>', methods=['PUT'])
 @token_auth.login_required()
@@ -616,7 +656,7 @@ def edit_experiment(id):
     this_experiment.commit_date = date
     this_experiment.commit_by = committer
     db.session.commit(this_experiment)
-    return 'Experiment successfully updated', 200
+    return {'message':'Experiment successfully updated'}, 200
     # return the updated experiment?
 
 @app.route('/api/extract-recipe')

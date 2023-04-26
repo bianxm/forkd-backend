@@ -174,6 +174,7 @@ class Recipe(DictableColumn, db.Model):
         dirty_dict['title'] = self.edits[0].title
         dirty_dict['description'] = self.edits[0].description
         dirty_dict['img_url'] = self.edits[0].img_url
+        dirty_dict['owner'] = self.owner.username
 
         return dirty_dict
     
@@ -199,7 +200,7 @@ class Experiment(DictableColumn, db.Model):
 
     # Relationships
     recipe = db.relationship('Recipe', back_populates='experiments') # one corresponsding Recipe object
-    committer = db.relationship('User', back_populates='committed_experiments')
+    committer = db.relationship('User', back_populates='committed_experiments',lazy="selectin")
 
     # misc class variable
     htmlclass = 'experiment'
@@ -211,6 +212,8 @@ class Experiment(DictableColumn, db.Model):
     def to_dict(self):
         dicted = super().to_dict()
         dicted['item_type'] = 'experiment'
+        if self.committer: 
+            dicted['commit_by'] = self.committer.username
         return dicted
 
     ## Class CRUD Methods
@@ -252,7 +255,7 @@ class Edit(DictableColumn, db.Model):
 
     # Relationships
     recipe = db.relationship('Recipe', back_populates='edits') # one corresponding Recipe object
-    committer = db.relationship('User', back_populates='committed_edits')
+    committer = db.relationship('User', back_populates='committed_edits',lazy="selectin")
 
     # misc class variable
     htmlclass = 'edit'
@@ -264,6 +267,8 @@ class Edit(DictableColumn, db.Model):
     def to_dict(self):
         dicted = super().to_dict()
         dicted['item_type'] = 'edit'
+        if self.committer:
+            dicted['commit_by'] = self.committer.username
         return dicted
     
     ## Class CRUD Methods
