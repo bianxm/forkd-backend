@@ -16,6 +16,9 @@ def get_shared_with_me(me_id: int) -> list('Recipe'):
 ## that the viewer can view
 ## viewer id can be null --> meaning nobody is logged in
 def get_viewable_recipes(owner_id: int, viewer_id: int | None) -> list[Recipe]:
+    """Given an owner and a viewer, returns a list of Recipe objects owned by the owner
+    that the viewer has permission to view"""
+
     # SELECT <Recipe> FROM recipes WHERE user_id = <owner_id> AND is_public = True
     select_owners_public_recipes = select(Recipe).where(Recipe.user_id == owner_id).where(Recipe.is_public == True)
     # UNION
@@ -28,8 +31,9 @@ def get_viewable_recipes(owner_id: int, viewer_id: int | None) -> list[Recipe]:
     union_query = select(Recipe).from_statement(union_query)
     return db.session.scalars(union_query).all()
 
-def get_recipe_shared_with(recipe: Recipe) -> list[User]:
-    stmt = select(User.username, Permission.can_edit, Permission.can_experiment).join(User.permissions).where(Permission.recipe_id == recipe.id)
+def get_recipe_shared_with(recipe: Recipe) -> list[tuple]:
+    """Given a Recipe, returns a list of tuples: (username, can_edit, can_experiment)"""
+    stmt = select(User.username, Permission.can_edit, Permission.can_experiment, User.id).join(User.permissions).where(Permission.recipe_id == recipe.id)
     return db.session.execute(stmt)
 
 ## Given a user('s id) and a recipe id, return whether they can view it (bool)
@@ -41,11 +45,12 @@ def can_user_view(user: User, recipe: Recipe) -> bool:
     return bool(db.session.execute(select_permission).one_or_none())
 
 ## Given a user's id and a recipe id, 
-# return a list of timeline items (recipes and edits) in descending chrono order
+# return a list of timeline items (experiments and edits) in descending chrono order
 # that the user is allowed to view (so either just experiments, or both experiments and edits)
 def get_timeline(viewer_id: int | None, recipe_id: int): # -> list('Edit'|'Experiment'):
     # return a dict:
-    # timeline: list of timeline items
+    # timeline_items: edits: list
+    #               : experiments: list -- will not be included if no permission
     # can_experiment: bool
     # can_edit: bool
     this_recipe = Recipe.get_by_id(recipe_id)

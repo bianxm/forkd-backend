@@ -412,6 +412,7 @@ def read_permissions(recipe_id):
             this_dict['username'] = row.username
             this_dict['can_edit'] = row.can_edit
             this_dict['can_experiment'] = row.can_experiment 
+            this_dict['user_id'] = row.id
             shared_with.append(this_dict)
         response['shared_with'] = shared_with
     return response
@@ -427,7 +428,7 @@ def create_permission(recipe_id):
         return error_response(401)
     # parse out POST params
     params = request.get_json()
-    new_user_id = params.get('user_id')
+    new_user_name = params.get('username')
     can_experiment = params.get('can_experiment')
     can_edit = params.get('can_edit')
     # new_user_id = request.form.get('user_id')
@@ -435,6 +436,11 @@ def create_permission(recipe_id):
     # can_edit = request.form.get('can_edit')
     submitter = token_auth.current_user()
     recipe = model.Recipe.get_by_id(recipe_id)
+    # check that user they want to add exists
+    new_user = model.User.get_by_username(new_user_name)
+    if not new_user:
+        return error_response(404)
+    
     
     ## input validation
     # can_edit can only be True if can_experiment is also True
@@ -445,29 +451,56 @@ def create_permission(recipe_id):
         submitters_p = model.Permission.get_by_user_and_recipe(submitter.id, recipe_id)
         if (not submitters_p) or (not submitters_p.can_edit):
             return error_response(403)
-    # check that user they want to add exists
-    if not model.User.get_by_id(new_user_id):
-        return error_response(404)
     # if association already exists, error out (409 - Conflict)
-    if model.Permission.get_by_user_and_recipe(new_user_id, recipe_id):
+    if model.Permission.get_by_user_and_recipe(new_user.id, recipe_id):
         return error_response(409)
     
 
     # otherwise, make a new permission row
-    new_permission = model.Permission.create(new_user_id, recipe_id,can_experiment,can_edit)
+    new_permission = model.Permission.create(new_user.id, recipe_id,can_experiment,can_edit)
     db.session.add(new_permission)
     db.session.commit()
-    return {'message':'New permission added'}, 204
+    return {'message':'New permission added','user_id':new_user.id}, 200
+
+@app.route('/api/recipes/<recipe_id>/permissions/<user_id>', methods=['DELETE'])
+@token_auth.login_required()
+def delete_permission(recipe_id, user_id):
+    if token_auth.current_user() == 'expired':
+        return error_response(401)
+    # parse out POST params
+    # params = request.get_json()
+    # user_id = params.get('user_id')
+    # new_user_id = request.form.get('user_id')
+    ## TODO CONVERT THESE
+    # can_experiment = params.get('can_experiment')
+    # can_edit = params.get('can_edit')
+    # can_experiment = request.form.get('can_experiment')
+    # can_edit = request.form.get('can_edit')
+    recipe = model.Recipe.get_by_id(recipe_id)
+    submitter = token_auth.current_user()
+
+    ## validation
+    # only if submitter is owner or can_edit
+    if recipe.user_id!=submitter.id:
+        submitters_p = model.Permission.get_by_user_and_recipe(submitter.id, recipe_id)
+        if (not submitters_p) or (not submitters_p.can_edit):
+            return error_response(403)
+    permission = model.Permission.get_by_user_and_recipe(user_id, recipe_id)
+    if permission:
+        # delete the permission
+        db.session.delete(permission)
+    db.session.commit()
+    return{'message':'Permission deleted'}, 200
 
 # PUT - edit permission level for a user
-@app.route('/api/recipes/<recipe_id>/permissions', methods=['PUT'])
+@app.route('/api/recipes/<recipe_id>/permissions/<user_id>', methods=['PUT'])
 @token_auth.login_required()
-def update_or_delete_permission(recipe_id):
+def update_or_delete_permission(recipe_id, user_id):
     if token_auth.current_user() == 'expired':
         return error_response(401)
     # parse out POST params
     params = request.get_json()
-    new_user_id = params.get('user_id')
+    # new_user_id = params.get('user_id')
     # new_user_id = request.form.get('user_id')
     ## TODO CONVERT THESE
     can_experiment = params.get('can_experiment')
@@ -484,25 +517,25 @@ def update_or_delete_permission(recipe_id):
         if (not submitters_p) or (not submitters_p.can_edit):
             return error_response(403)
     # if association doesn't exist, error out (404 - Not Found)
-    permission = model.Permission.get_by_user_and_recipe(new_user_id, recipe_id)
+    permission = model.Permission.get_by_user_and_recipe(user_id, recipe_id)
     if not permission:
         return error_response(409)
 
     # otherwise, update permission
     # if can_edit and can_experiment both set to False, delete the row
-    if not can_edit and not can_experiment: # perhaps set to 1 or 0? anyway just remember need to cast the form.get
+    # if not can_edit and not can_experiment: # perhaps set to 1 or 0? anyway just remember need to cast the form.get
         # delete the permission
-        db.session.delete(permission)
-    else:
+        # db.session.delete(permission)
+    # else:
         # edit the permission
-        permission.can_edit = can_edit
-        permission.can_experiment = can_experiment
-        db.session.add(permission)
+    permission.can_edit = can_edit
+    permission.can_experiment = can_experiment
+    db.session.add(permission)
     db.session.commit()
     return{'message':'Permission modified'}, 200
 
 # PATCH - edit permission level for recipe globally
-@app.route('/api/recipes/<recipe_id>/permissions', methods=['PATCH'])
+@app.route('/api/recipes/<recipe_id>/permissions', methods=['PUT'])
 @token_auth.login_required()
 def update_global_permissions(recipe_id):
     submitter = token_auth.current_user()

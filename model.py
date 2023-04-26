@@ -88,7 +88,7 @@ class User(DictableColumn, db.Model):
     def is_password_correct(self, given_password: str) -> bool:
         return argon2.verify(given_password, self.password)
     
-    def get_token(self, expires_in_hrs: int = 2):
+    def get_token(self, expires_in_hrs: int = 10):
         now = datetime.utcnow()
         if self.token and self.token_expiration > now + timedelta(seconds=60):
             return self.token
