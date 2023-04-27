@@ -46,7 +46,7 @@ class User(DictableColumn, db.Model):
 
     # Relationships
     recipes = db.relationship('Recipe', back_populates='owner', order_by='desc(Recipe.last_modified)') # list of corresponding Recipe objects
-    permissions = db.relationship('Permission', back_populates='user')
+    permissions = db.relationship('Permission', back_populates='user', cascade='save-update, merge, delete')
     committed_edits = db.relationship('Edit', back_populates='committer')
     committed_experiments = db.relationship('Experiment', back_populates='committer')
 

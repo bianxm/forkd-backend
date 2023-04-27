@@ -73,7 +73,21 @@ def token_auth_error(status):
 def revoke_token():
     if token_auth.current_user() == 'expired':
         return '', 204
-    token_auth.current_user().revoke_token()
+    
+    if token_auth.current_user().is_temp_user:
+        submitter = token_auth.current_user()
+        for recipe in submitter.recipes:
+            db.session.delete(recipe)
+        db.session.commit()
+        # go through all their edits, experiments and delete (basically in other's recipes)
+        for edit in submitter.committed_edits:
+            db.session.delete(edit)
+        for experiment in submitter.committed_experiments:
+            db.session.delete(experiment)
+        db.session.delete(submitter)
+    else:
+        token_auth.current_user().revoke_token()
+
     db.session.commit()
     return '', 204
 
@@ -99,6 +113,7 @@ def create_user():
     given_email = params.get('email')
     given_username = params.get('username')
     given_password =  params.get('password')
+    is_temp_user = params.get('is_temp_user',False)
     # given_email = request.form.get('email')
     # given_username = request.form.get('username')
     # given_password = request.form.get('password')
@@ -116,7 +131,7 @@ def create_user():
     # validate that fields are not empty!!!!
 
     # if input is valid, create the user
-    new_user = model.User.create(given_email, given_password, given_username)
+    new_user = model.User.create(given_email, given_password, given_username, is_temp_user)
     db.session.add(new_user)
     db.session.commit()
     
