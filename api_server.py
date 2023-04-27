@@ -219,8 +219,14 @@ def delete_user(id):
 
 ################ Endpoint '/api/recipes' ############################
 # GET -- return list of all recipes (paginated, with filters)
-# @app.route('/api/recipes')
+@app.route('/api/recipes')
 # @token_auth.login_required(optional=True)
+def get_featured_recipes():
+    featured_ids = [20, 10, 12, 11]
+    featured = []
+    for id in featured_ids:
+        featured.append(model.Recipe.get_by_id(id).to_dict())
+    return featured
 
 # POST -- create a new recipe
 @app.route('/api/recipes', methods=['POST'])
