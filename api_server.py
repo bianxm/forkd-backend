@@ -251,7 +251,7 @@ def create_new_recipe():
 
 
     submitter = token_auth.current_user()
-    now = datetime.now()
+    now = datetime.utcnow()
 
     # input validation needed!
 
@@ -328,7 +328,7 @@ def create_new_exp(id):
     notes = params.get('notes')
     # commit_msg = request.form.get('commit-msg')
     # notes = request.form.get('notes')
-    now = datetime.now()
+    now = datetime.utcnow()
     this_recipe = model.Recipe.get_by_id(id)
     submitter = token_auth.current_user()
 
@@ -368,7 +368,7 @@ def create_new_edit(id):
     # ingredients = request.form.get('ingredients')
     # instructions = request.form.get('instructions')
     # img_url = request.form.get('img-url')
-    now = datetime.now()
+    now = datetime.utcnow()
     this_recipe = model.Recipe.get_by_id(id)
     submitter = token_auth.current_user()
     pending_approval = False
