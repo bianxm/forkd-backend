@@ -12,9 +12,13 @@ from flask_httpauth import HTTPBasicAuth, HTTPTokenAuth
 from werkzeug.http import HTTP_STATUS_CODES
 import permissions_helper as ph
 import re
+import cloudinary.uploader
 
 load_dotenv()
 SPOONACULAR_KEY = os.environ['SPOONACULAR_KEY']
+CLOUDINARY_KEY = os.environ['CLOUDINARY_KEY']
+CLOUDINARY_SECRET = os.environ['CLOUDINARY_SECRET']
+CLOUD_NAME = os.environ['CLOUD_NAME']
 
 app = Flask(__name__)
 app.secret_key = os.environ['FLASK_KEY']
@@ -113,7 +117,7 @@ def create_user():
     given_username = params.get('username')
     given_password =  params.get('password')
     is_temp_user = params.get('is_temp_user',False)
-    
+
     ### input validation
     # validate that fields are not empty!!!!
     if not all([given_email, given_password, given_username]) or not re.match(r'^[A-Za-z0-9_-]+$',given_username):
@@ -186,13 +190,18 @@ def update_user(id):
     if submitter.id != id:
         error_response(403)
     
+    new_email = new_username = password = new_password = new_avatar = file = None
+    
     # parse out PATCH form params
-    params = request.get_json(force=True)
-    new_email = params.get('new_email')
-    new_username = params.get('new_username')
-    password =  params.get('password') # only required to change password
-    new_password =  params.get('new_password')
-    new_avatar = params.get('img_url')
+    if request.headers.get('Content-Type') == 'application/json':
+        params = request.get_json(force=True)
+        new_email = params.get('new_email')
+        new_username = params.get('new_username')
+        password =  params.get('password') # only required to change password
+        new_password =  params.get('new_password')
+        new_avatar = params.get('img_url')
+    else:
+        file = request.files.get('img_file')
 
 
     # update db and commit
@@ -215,6 +224,14 @@ def update_user(id):
         submitter.change_password(new_password)
     elif new_avatar:
         submitter.img_url = new_avatar
+    elif file:
+        result = cloudinary.uploader.upload(file, 
+                                            api_key=CLOUDINARY_KEY,
+                                            api_secret=CLOUDINARY_SECRET,
+                                            cloud_name=CLOUD_NAME)
+        img_url = result['secure_url']
+        submitter.img_url = img_url
+        return {'new_avatar':img_url}, 200
     else:
         return {'message':'No change made'}, 400
 
