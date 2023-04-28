@@ -9,7 +9,6 @@ import os
 import model
 from datetime import datetime
 import requests
-# from passlib.hash import argon2
 
 load_dotenv()
 SPOONACULAR_KEY = os.environ['SPOONACULAR_KEY']
@@ -141,7 +140,7 @@ def submit_new_recipe():
 
     # db changes
     newRecipe = model.Recipe.create(owner=submitter, modified_on=now, source_url=given_url, forked_from=forked_from_id) # create recipe
-    model.Edit.create(newRecipe, title, description, ingredients, instructions, now) # create first edit
+    model.Edit.create(newRecipe, title, description, ingredients, instructions, "", now) # create first edit
     model.db.session.add(newRecipe)
     model.db.session.commit()
     return redirect(f"/{session.get('username')}")
@@ -213,7 +212,7 @@ def submit_new_edit():
     # db changes
     new_edit = model.Edit.create(this_recipe,
                                  title, description,
-                                 ingredients, instructions,
+                                 ingredients, instructions,'',
                                  now) # create new edit
     this_recipe.update_last_modified(now) # update recipe's last_modified field
     model.db.session.add_all([new_edit, this_recipe])
@@ -328,5 +327,5 @@ def delete_edit(id):
         return make_response('Server error', 500)
 
 if __name__ == '__main__':
-    connect_to_db(app)
-    app.run(host='0.0.0.0', debug=True)
+    connect_to_db(app, 'forkd-p')
+    app.run(host='0.0.0.0', port="5001", debug=True)
