@@ -1,10 +1,12 @@
 """Script to seed the database"""
+# TODO Redo this using api_server file and current model!!!
 
 import sys
 import os
 # from random import randint
 import model
-import server
+# import server
+import api_server
 from datetime import datetime, timedelta
 
 # if instructed, drop and re-create the db
@@ -21,8 +23,8 @@ if sys.argv[1:2] and sys.argv[2:3]:
         print("Adding to existing database 'test'...")
 
 # connect to db (and re-create tables, if needed)
-model.connect_to_db(server.app, db_name)
-server.app.app_context().push()
+model.connect_to_db(api_server.app, db_name)
+api_server.app.app_context().push()
 if sys.argv[1:2] == ['recreate']:
     model.db.create_all()
 

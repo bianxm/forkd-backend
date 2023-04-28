@@ -88,6 +88,10 @@ class User(DictableColumn, db.Model):
     def is_password_correct(self, given_password: str) -> bool:
         return argon2.verify(given_password, self.password)
     
+    def change_password(self, new_password: str) -> bool:
+        new_password = argon2.hash(new_password)
+        self.password = new_password
+    
     def get_token(self, expires_in_hrs: int = 10):
         now = datetime.utcnow()
         if self.token and self.token_expiration > now + timedelta(seconds=60):
@@ -325,7 +329,7 @@ def connect_to_db(flask_app, db_uri="test", echo=True):
     print(f"Connected to the db '{db_uri}'!")
 
 if __name__ == '__main__':
-    from server import app
+    from api_server import app
     import sys
 
     if sys.argv[1:2]:
