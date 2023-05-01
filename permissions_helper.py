@@ -2,29 +2,25 @@ from model import (db, connect_to_db, User,
                    Recipe, Edit, Experiment, Permission)
 from sqlalchemy import select, union, desc
 
-# QUERIES I NEED NOW THAT I HAVE PERMISSIONS
-## Given a user('s id), return recipes that have been shared to them 
-    # basically, all recipes that are associated with that user in the permissions table
 def get_shared_with_me(me_id: int) -> list('Recipe'):
-   # SELECT <Recipe> FROM recipes JOIN permissions
-   # WHERE permissions.user_id == <me_id>
-   select_shared_with_me = select(Recipe).join(Recipe.permissions).where(Permission.user_id==me_id)
-   return db.session.scalars(select_shared_with_me).all()
+    # """
+    # Given a user's id, return recipes that have been shared with them. 
+    
+    # Essentially, all recipes that are associated with that user in the Permissions table.
+    # """
+   
+    # SELECT <Recipe> FROM recipes JOIN permissions WHERE permissions.user_id == <me_id>
+    select_shared_with_me = select(Recipe).join(Recipe.permissions).where(Permission.user_id==me_id)
+    return db.session.scalars(select_shared_with_me).all()
 
-## Given a viewer's user id and an owner's user id, 
-## return all recipes owned by owner
-## that the viewer can view
-## viewer id can be null --> meaning nobody is logged in
 def get_viewable_recipes(owner_id: int, viewer_id: int | None) -> list[Recipe]:
-    """Given an owner and a viewer, returns a list of Recipe objects owned by the owner
-    that the viewer has permission to view"""
+    """Given an owner and a viewer, returns a list of Recipe objects owned by the owner that the viewer has permission to view"""
 
     # SELECT <Recipe> FROM recipes WHERE user_id = <owner_id> AND is_public = True
     select_owners_public_recipes = select(Recipe).where(Recipe.user_id == owner_id).where(Recipe.is_public == True)
     # UNION
     # SELECT <Recipe> FROM recipes AS r JOIN permissions AS p
-    # WHERE p.user_id = <viewer_id>
-    # AND r.user_id = <owner_id>
+    # WHERE p.user_id = <viewer_id> AND r.user_id = <owner_id>
     # ORDER BY Recipe.last_modified 
     select_shared_with_viewer = select(Recipe).join(Recipe.permissions).where(Permission.user_id==viewer_id).where(Recipe.user_id==owner_id)
     union_query = union(select_owners_public_recipes, select_shared_with_viewer).order_by(desc(Recipe.last_modified))
@@ -36,8 +32,8 @@ def get_recipe_shared_with(recipe: Recipe) -> list[tuple]:
     stmt = select(User.username, Permission.can_edit, Permission.can_experiment, User.id).join(User.permissions).where(Permission.recipe_id == recipe.id)
     return db.session.execute(stmt)
 
-## Given a user('s id) and a recipe id, return whether they can view it (bool)
 def can_user_view(user: User, recipe: Recipe) -> bool:
+    """Return whether the User can view the given Recipe"""
     # this_recipe = Recipe.get_by_id(recipe_id)
     if recipe.is_public:
         return True
@@ -101,6 +97,6 @@ def get_timeline(viewer_id: int | None, recipe_id: int): # -> list('Edit'|'Exper
 ## Given a recipe, get the edit that it was forked from
 
 if __name__== '__main__':
-    from server import app
+    from api_server import app
     connect_to_db(app, 'forkd-p')
     app.app_context().push()

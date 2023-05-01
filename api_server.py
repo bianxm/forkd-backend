@@ -1,28 +1,29 @@
 """API Server for Forkd"""
 
 from flask import (Flask, request, jsonify)
-from model import connect_to_db, db
-from jinja2 import StrictUndefined
 from dotenv import load_dotenv
-import os
-import model
-from datetime import datetime
 import requests
 from flask_httpauth import HTTPBasicAuth, HTTPTokenAuth
 from werkzeug.http import HTTP_STATUS_CODES
-import permissions_helper as ph
-import re
 import cloudinary.uploader
+
+import model
+import permissions_helper as ph
+
+import re
+import os
+from datetime import datetime
+
 
 load_dotenv()
 SPOONACULAR_KEY = os.environ['SPOONACULAR_KEY']
 CLOUDINARY_KEY = os.environ['CLOUDINARY_KEY']
 CLOUDINARY_SECRET = os.environ['CLOUDINARY_SECRET']
 CLOUD_NAME = os.environ['CLOUD_NAME']
+RDS_URI = os.environ['RDS_URI']
 
 app = Flask(__name__)
 app.secret_key = os.environ['FLASK_KEY']
-app.jinja_env.undefined = StrictUndefined
 
 ### Error response helper
 def error_response(status_code=500, message=None):
@@ -34,9 +35,7 @@ def error_response(status_code=500, message=None):
     return response
     
 
-################ Endpoint '/api/tokens' ############################
-################ BASIC AUTH ENDPOINT ###############################
-################ For login  ########################################
+##################### Endpoint '/api/tokens' ---- for login ############################
 basic_auth = HTTPBasicAuth()
 
 @basic_auth.verify_password
@@ -54,11 +53,12 @@ def basic_auth_error(status):
     # return error_response(status)
     return '', 403
 
+# POST -- expects Basic Auth Header
 @app.route('/api/tokens', methods=['POST']) # login - give a token
 @basic_auth.login_required
 def get_token():
     token = basic_auth.current_user().get_token()
-    db.session.commit()
+    model.db.session.commit()
     return {'token': token}, 200
 
 token_auth = HTTPTokenAuth()
@@ -70,8 +70,8 @@ def verify_token(token):
 @token_auth.error_handler
 def token_auth_error(status):
     return error_response(status)
-    # return 'Access Denied', status
 
+# DELETE -- expects Authentication: Bearer Header containing session
 @app.route('/api/tokens', methods=['DELETE']) # logout - revoke token
 @token_auth.login_required
 def revoke_token():
@@ -81,20 +81,22 @@ def revoke_token():
     if token_auth.current_user().is_temp_user:
         submitter = token_auth.current_user()
         for recipe in submitter.recipes:
-            db.session.delete(recipe)
-        db.session.commit()
+            model.db.session.delete(recipe)
+        model.db.session.commit()
         # go through all their edits, experiments and delete (basically in other's recipes)
         for edit in submitter.committed_edits:
-            db.session.delete(edit)
+            model.db.session.delete(edit)
         for experiment in submitter.committed_experiments:
-            db.session.delete(experiment)
-        db.session.delete(submitter)
+            model.db.session.delete(experiment)
+        model.db.session.delete(submitter)
     else:
         token_auth.current_user().revoke_token()
 
-    db.session.commit()
+    model.db.session.commit()
     return '', 204
 
+# GET /api/me -- expects Authentication: Bearer Header containing session token
+# returns user details corresponding to the session token
 @app.route('/api/me')
 @token_auth.login_required
 def get_user():
@@ -103,7 +105,7 @@ def get_user():
     return token_auth.current_user().to_dict()
 
 ################ Endpoint '/api/users' ############################
-# GET -- return all users TO PAGINATE
+# GET -- return all users TO PAGINATE; unused in Frontend
 @app.route('/api/users')
 def read_all_users():
     return [user.to_dict() for user in model.User.get_all()], 200
@@ -111,6 +113,14 @@ def read_all_users():
 # POST -- create a new user
 @app.route('/api/users', methods=['POST'])
 def create_user():
+    """Creates a new user.
+
+    Expects:    {email: <string, untaken email>,
+                username: <string, can only contain alphanumeric, underscore, and dash>,
+                password: <string>,
+                is_temp_user: <bool; if True, user will be completely deleted on logout>}
+    Returns:    201 if successful
+    """
     # parse out POST params 
     params = request.get_json(force=True)
     given_email = params.get('email')
@@ -119,7 +129,7 @@ def create_user():
     is_temp_user = params.get('is_temp_user',False)
 
     ### input validation
-    # validate that fields are not empty!!!!
+    # validate that fields are not empty!!!! and that username is valid format
     if not all([given_email, given_password, given_username]) or not re.match(r'^[A-Za-z0-9_-]+$',given_username):
         return error_response(400)
     # validate that email or username not already taken
@@ -127,14 +137,15 @@ def create_user():
         return error_response(409, 'Email already taken')
     if model.User.get_by_username(given_username):
         return error_response(409, 'Username already taken')
-    # password the same check will be done client-side 
 
     # if input is valid, create the user
     new_user = model.User.create(given_email, given_password, given_username, is_temp_user)
-    db.session.add(new_user)
-    db.session.commit()
-    
-    return 'Account successfully created', 201
+    model.db.session.add(new_user)
+    try:
+        model.db.session.commit()
+        return 'Account successfully created', 201
+    except:
+        error_response(500,'Cannot commit to db')
 
 
 ################ Endpoint '/api/users/<username>' ############################
@@ -142,6 +153,29 @@ def create_user():
 @app.route('/api/users/<username>')
 @token_auth.login_required(optional=True)
 def read_user_profile(username):
+    """Gets a user's profile -- user details, plus their viewable recipes. Token auth is optional, but determines which recipes are visible depending on permissions.
+
+    Returns:    {id: <int, unique id for user>,
+                 username: <string>,
+                 img_url: <string, link to user's avatar image>,
+                 is_temp_user: <bool>,
+                 recipes: <list of dicts:   {id: <int, unique recipe id>
+                                             title: <string>,
+                                             description: <string>,
+                                             user_id: <int, user id of recipe owner>
+                                             owner: <string, username of recipe owner>
+                                             owner_avatar: <link to avatar of recipe owner>
+                                             source_url: <link from which recipe was extracted>
+                                             img_url: <link to image associated with recipe>,
+                                             forked_from: <int, recipe id of parent recipe>,
+                                             forked_from_username: <username of owner of parent recipe>,
+                                             forked_from_avatar: <link to avatar of owner of parent recipe>,
+                                             is_experiments_public: <bool>,
+                                             is_public: <bool>,
+                                             last_modified: <datetime>,
+                                            }>,
+                 (shared_with_me): <list, similar to recipes above. only if viewer is viewing their own username>}
+    """
     viewer = token_auth.current_user()
     status = 200
     if viewer == 'expired': 
@@ -165,7 +199,7 @@ def read_user_profile(username):
         user_details['shared_with_me'] = [recipe.to_dict() for recipe in shared_recipes]
     return user_details, status
 
-# DELETE -- Delete this user
+# DELETE -- Delete this user -- UNIMPLEMENTED
 @app.route('/api/users/<id>', methods=['DELETE'])
 @token_auth.login_required()
 def delete_user(id):
@@ -174,18 +208,29 @@ def delete_user(id):
         return error_response(401)
     if submitter.id != id:
         return error_response(403)
-    
     # go through user's recipes
     # get all permissions, and pass ownership to someone with highest permission 
     # then delete all recipes
     # then delete user
     # their edits and experiments in other people's recipes will be kept but dis-associated (put 'deactivated user')
-    pass
+    return error_response(501) # Not Implemented
+    
 
 # PUT (or PATCH?) -- Edit user details
 @app.route('/api/users/<id>', methods=['PATCH'])
 @token_auth.login_required()
 def update_user(id):
+    """Update a user's details.
+
+    Expects ONE OF:
+        - {new_email: <string for new email>}
+        - {new_username: <string for new username, must adhere to username format>}
+        - {password: <existing password; must be correct for change to take place>
+            new_password: <string, new password>}
+        - {img_url: <url of new user avatar>}
+        - FORM DATA img_file: <file to be uploaded to Cloudinary> -- will return generated Cloudinary link
+    Returns: 200 if successful
+    """
     submitter = token_auth.current_user()
     if submitter.id != id:
         error_response(403)
@@ -235,13 +280,13 @@ def update_user(id):
     else:
         return {'message':'No change made'}, 400
 
-    db.session.add(submitter)
+    model.db.session.add(submitter)
     
     try:
-        db.session.commit()
+        model.db.session.commit()
         return {'message':'User successfully updated'}, 200
     except:
-        return {'message':'Something went wrong'}, 500
+        return error_response(500, 'Cannot commit to db')
         
     
 
@@ -259,6 +304,10 @@ def get_featured_recipes():
 @app.route('/api/recipes', methods=['POST'])
 @token_auth.login_required()
 def create_new_recipe():
+    """Create a new recipe
+    Expects:    {title, description, ingredients, instructions, url, forked_from, set_is_public, set_is_exps_public}
+    Returns:    200 if successful
+    """
     if token_auth.current_user() == 'expired': 
         return error_response(401)
     # parse out POST params
@@ -284,8 +333,12 @@ def create_new_recipe():
                                     source_url=given_url, forked_from=forked_from_id) # create recipe
     model.Edit.create(newRecipe, title, description, ingredients, instructions, img_url, now, submitter) # create first edit
     model.db.session.add(newRecipe)
-    model.db.session.commit()
-    return {'message':'Recipe successfully created'}, 201
+
+    try:
+        model.db.session.commit()
+        return {'message':'Recipe successfully created'}, 201
+    except:
+        return error_response(500, 'Cannot commit to db')
 
 ################ Endpoint '/api/recipes/<id>' ############################
 # GET -- return timeline-items list, can_edit bool, can_exp bool
@@ -299,10 +352,11 @@ def read_recipe_timeline(id):
         response_code = 401
     query_owner = request.args.get('owner')
     recipe = model.Recipe.get_by_id(id)
+    if not recipe:
+        return error_response(404)
     recipe_owner = recipe.owner.username
     if query_owner and query_owner != recipe_owner:
         return error_response(404)
-    # viewable_recipes = ph.get_viewable_recipes(id, token_auth.current_user().id if token_auth.current_user() else None)
     timeline_items = ph.get_timeline(current_user.id if current_user else None, id)
     if not timeline_items:
         return error_response(404)
@@ -312,11 +366,6 @@ def read_recipe_timeline(id):
     response['timeline_items'] = timeline_items[0]
     response['can_experiment'] = timeline_items[1]
     response['can_edit'] = timeline_items[2]
-    # response['owner'] = recipe_owner
-    # response['source_url'] = recipe.source_url
-    # response['forked_from'] = recipe.forked_from
-    # response['last_modified'] = recipe.last_modified
-    # response['id'] = recipe.id
     return response, response_code
 
 # DELETE -- Delete given recipe
@@ -333,9 +382,13 @@ def delete_recipe(id):
     if token_auth.current_user() != this_recipe.owner:
         return error_response(403)
     
-    db.session.delete(this_recipe)
-    db.session.commit()
-    return {'message':'Recipe successfully deleted'}, 200
+    model.db.session.delete(this_recipe)
+    
+    try:
+        model.db.session.commit()
+        return {'message':'Recipe successfully deleted'}, 200
+    except:
+        return error_response(500, 'Cannot commit to db')
 
 # POST -- Create a new experiment
 @app.route('/api/recipes/<id>', methods=['POST'])
@@ -349,6 +402,8 @@ def create_new_exp(id):
     notes = params.get('notes')
     now = datetime.utcnow()
     this_recipe = model.Recipe.get_by_id(id)
+    if not this_recipe:
+        return error_response(404)
     submitter = token_auth.current_user()
 
     # check that submitter is allowed to add a new experiment to given recipe
@@ -360,11 +415,22 @@ def create_new_exp(id):
     # db changes
     new_experiment = model.Experiment.create(this_recipe, commit_msg, notes, now,
                                              now, token_auth.current_user()) # create experiment
+    model.db.session.add(new_experiment)
+    model.db.session.flush()
     this_recipe.update_last_modified(now) # update recipe's last_modified field
-    model.db.session.add_all([new_experiment, this_recipe])
-    model.db.session.commit()
-    response = new_experiment.to_dict()
-    return response, 200
+    model.db.session.add(this_recipe)
+    try:
+        model.db.session.commit()
+        return {'id': new_experiment.id,
+                'commit_date': now,
+                'commit_by': submitter.username,
+                'item_type': 'experiment',
+                'commit_msg': commit_msg,
+                'notes': notes,
+                'recipe_id': this_recipe.id
+                }, 200
+    except:
+        return error_response(500,'Cannot commit to db')
 
 # PUT (or PATCH?) -- Create a new edit
 @app.route('/api/recipes/<id>', methods=['PUT']) #or PATCH?
@@ -381,20 +447,24 @@ def create_new_edit(id):
     img_url = params.get('img-url')
     now = datetime.utcnow()
     this_recipe = model.Recipe.get_by_id(id)
+    if not this_recipe:
+        return error_response(404)
     submitter = token_auth.current_user()
     pending_approval = False
     
     # check that submitter is allowed to add a new edit to given recipe
     if this_recipe.user_id != submitter.id:
         permission = model.Permission.get_by_user_and_recipe(submitter.id, id)
-        if not permission or not permission.can_experiment:
+        if not permission or not permission.can_edit:
             return error_response(403)
-        if not permission.can_edit and permission.can_experiment:
+        # if not permission or not permission.can_experiment:
+        #     return error_response(403)
+        # if not permission.can_edit and permission.can_experiment:
             # submit for approval, basically pending approval flag is True,
             # and commit date is empty
             # and recipe last_modified is not changed
-            now = None
-            pending_approval = True
+            # now = None
+            # pending_approval = True
 
     # db changes
     new_edit = model.Edit.create(this_recipe,
@@ -406,16 +476,28 @@ def create_new_edit(id):
     if now:
         this_recipe.update_last_modified(now) # update recipe's last_modified field
     model.db.session.add_all([new_edit, this_recipe])
-    model.db.session.commit()
-    return {'message':'Experiment successfully created'}, 201
-    
-    # TODO handle if recipe does not exist
+    try:
+        model.db.session.commit()
+        return {'id': new_edit.id,
+                'commit_date': now,
+                'commit_by': submitter.username,
+                'item_type': 'edit',
+                'title': title,
+                'description': description,
+                'ingredients': ingredients,
+                'instructions': instructions,
+                'img_url': new_edit.img_url,
+                'recipe_id': this_recipe.id
+                }, 200
+    except:
+        return error_response(500,'Cannot commit to db')
 
 ########### Endpoint '/api/recipes/<id>/permissions' ###################
 # GET - return is_public, is_experiments_public, and list of users with permissions
 @app.route('/api/recipes/<recipe_id>/permissions')
 @token_auth.login_required()
 def read_permissions(recipe_id):
+    # document sample return json structure
     if token_auth.current_user() == 'expired':
         return error_response(401)
     response = dict()
@@ -429,16 +511,10 @@ def read_permissions(recipe_id):
     response['is_public'] = recipe.is_public
     response['is_experiments_public'] = recipe.is_experiments_public
     # if viewer is owner, or has edit access:
-    # if submitter is recipe.owner or 
     if recipe.owner == submitter or permission.can_edit:
         # show shared_with
         shared_with = []
         for row in ph.get_recipe_shared_with(recipe):
-            # this_dict = dict()
-            # this_dict['username'] = row.username
-            # this_dict['can_edit'] = row.can_edit
-            # this_dict['can_experiment'] = row.can_experiment 
-            # this_dict['user_id'] = row.id
             shared_with.append({
                 'username': row.username,
                 'can_edit': row.can_edit,
@@ -454,6 +530,7 @@ def read_permissions(recipe_id):
 @app.route('/api/recipes/<recipe_id>/permissions', methods=['POST'])
 @token_auth.login_required()
 def create_permission(recipe_id):
+    # expects json input (what structure) -> sample json output
     if token_auth.current_user() == 'expired':
         return error_response(401)
     # parse out POST params
@@ -481,13 +558,15 @@ def create_permission(recipe_id):
     # if association already exists, error out (409 - Conflict)
     if model.Permission.get_by_user_and_recipe(new_user.id, recipe_id):
         return error_response(409)
-    
 
     # otherwise, make a new permission row
     new_permission = model.Permission.create(new_user.id, recipe_id,can_experiment,can_edit)
-    db.session.add(new_permission)
-    db.session.commit()
-    return {'message':'New permission added','user_id':new_user.id}, 200
+    model.db.session.add(new_permission)
+    try:
+        model.db.session.commit()
+        return {'message':'New permission added','user_id':new_user.id}, 200
+    except:
+        return error_response(500, 'Cannot commit to db')
 
 @app.route('/api/recipes/<recipe_id>/permissions/<user_id>', methods=['DELETE'])
 @token_auth.login_required()
@@ -507,9 +586,13 @@ def delete_permission(recipe_id, user_id):
     if permission: 
         # delete the permission
         # if permission doesn't exist, there's no permission to delete and the user won't have access anyway
-        db.session.delete(permission)
-    db.session.commit()
-    return{'message':'Permission deleted'}, 200
+        model.db.session.delete(permission)
+
+    try:
+        model.db.session.commit()
+        return{'message':'Permission deleted'}, 200
+    except:
+        return error_response(500, 'Cannot commit to db')
 
 # PUT - edit permission level for a user
 @app.route('/api/recipes/<recipe_id>/permissions/<user_id>', methods=['PUT'])
@@ -538,9 +621,12 @@ def update_or_delete_permission(recipe_id, user_id):
     # update permission
     permission.can_edit = can_edit
     permission.can_experiment = can_experiment
-    db.session.add(permission)
-    db.session.commit()
-    return{'message':'Permission modified'}, 200
+    model.db.session.add(permission)
+    try:
+        model.db.session.commit()
+        return{'message':'Permission modified'}, 200
+    except:
+        return error_response(500, 'Cannot commit to db')
 
 # PATCH - edit permission level for recipe globally
 @app.route('/api/recipes/<recipe_id>/permissions', methods=['PUT'])
@@ -568,12 +654,12 @@ def update_global_permissions(recipe_id):
     try:
         recipe.is_public = is_public
         recipe.is_experiments_public = is_experiments_public
-        db.session.add(recipe)
-        db.session.commit()
+        model.db.session.add(recipe)
+        model.db.session.commit()
 
         return {'message':'Global permissions successfully updated'}, 200
     except:
-        return {'message':'Something went wrong'}, 500
+        return error_response(500, 'Cannot commit to db') 
 
 
 ################ Endpoint '/api/edits/<id>' ############################
@@ -603,37 +689,40 @@ def delete_edit(id):
             return error_response(403)
     
     # delete edit
-    db.session.delete(this_edit)
-    db.session.commit()
-    return {'message': 'Edit successfully deleted'}, 200
+    model.db.session.delete(this_edit)
+    try:
+        model.db.session.commit()
+        return {'message': 'Edit successfully deleted'}, 200
+    except:
+        return error_response(500, 'Cannot commit to db')
 
+##### Aprove pending edit: need to revisit design for this
+# @app.route('/api/edits/<id>', methods=['PATCH'])
+# @token_auth.login_required()
+# def approve_pending_edit(id):
+#     if token_auth.current_user() == 'expired':
+#         return error_response(401)
+#     edit = model.Edit.get_by_id(id)
+#     if not edit:
+#         return error_response(404)
+#     if not edit.pending_approval:
+#         return error_response(409)
+#     # only if submitter is owner or has edit access (and isn't a temp user)
+#     # check if sender is allowed to delete
+#     # can delete if user is owner of recipe or has edit access
+#     submitter = token_auth.current_user()
+#     if submitter.id != edit.recipe.user_id:
+#         permission = model.Permission.get_by_user_and_recipe(submitter.id, edit.recipe_id)
+#         if not permission or not permission.can_edit or submitter.is_temp_user:
+#             return error_response(403)
 
-@app.route('/api/edits/<id>', methods=['PATCH'])
-@token_auth.login_required()
-def approve_pending_edit(id):
-    if token_auth.current_user() == 'expired':
-        return error_response(401)
-    edit = model.Edit.get_by_id(id)
-    if not edit:
-        return error_response(404)
-    if not edit.pending_approval:
-        return error_response(409)
-    # only if submitter is owner or has edit access (and isn't a temp user)
-    # check if sender is allowed to delete
-    # can delete if user is owner of recipe or has edit access
-    submitter = token_auth.current_user()
-    if submitter.id != edit.recipe.user_id:
-        permission = model.Permission.get_by_user_and_recipe(submitter.id, edit.recipe_id)
-        if not permission or not permission.can_edit or submitter.is_temp_user:
-            return error_response(403)
-
-    now = datetime.now()
-    edit.pending_approval = False
-    edit.commit_date = now
-    edit.recipe.update_last_modified(now)
-    db.session.add_all([edit, edit.recipe])
-    db.session.commit()
-    return {'message':'Edit approved'}, 200
+#     now = datetime.now()
+#     edit.pending_approval = False
+#     edit.commit_date = now
+#     edit.recipe.update_last_modified(now)
+#     model.db.session.add_all([edit, edit.recipe])
+#     model.db.session.commit()
+#     return {'message':'Edit approved'}, 200
 
 ################ Endpoint '/api/experiments/<id>' ############################
 # @app.route('/api/experiments/<id>')
@@ -659,10 +748,14 @@ def delete_experiment(id):
             return error_response(403)
     
     # delete experiment
-    db.session.delete(this_experiment)
-    db.session.commit()
-    return {'message': 'Experiment successfully deleted'}, 200
+    model.db.session.delete(this_experiment)
+    try:
+        model.db.session.commit()
+        return {'message': 'Experiment successfully deleted'}, 200
+    except:
+        return error_response(500, 'Cannot commit to db')
 
+############### NOT HOOKED UP TO FRONTEND
 @app.route('/api/experiments/<id>', methods=['PUT'])
 @token_auth.login_required()
 def edit_experiment(id):
@@ -692,9 +785,12 @@ def edit_experiment(id):
     this_experiment.notes = notes
     this_experiment.commit_date = date
     this_experiment.commit_by = committer
-    db.session.commit(this_experiment)
-    return {'message':'Experiment successfully updated'}, 200
-    # return the updated experiment?
+    
+    try:
+        model.db.session.commit(this_experiment)
+        return {'message':'Experiment successfully updated'}, 200
+    except:
+        return error_response(500, 'Cannot commit to db')
 
 @app.route('/api/extract-recipe')
 def extract_recipe_from_url():
@@ -725,5 +821,6 @@ def extract_recipe_from_url():
 
 
 if __name__ == '__main__':
-    connect_to_db(app, 'forkd-p', False)
+    model.connect_to_db(app, '/forkd-p', False)
+    # model.connect_to_db(app, RDS_URI, False)
     app.run(host='0.0.0.0', debug=True)
