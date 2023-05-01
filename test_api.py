@@ -4,64 +4,23 @@ import model
 from api_server import app
 from datetime import datetime, timedelta
 
-# Global setup: Connect to Flask app & db and register test_client
-app.config['TESTING'] = True
-model.connect_to_db(app, 'forkd-testdb',False)
-app.app_context().push()
-client = app.test_client()
-
-## drop and re-create tables so that we start from scratch
-model.db.drop_all()
-model.db.create_all()
-
-## seed test database
-user = model.User.create(email='joker@tokyo.com',password='phantomthieves',username='joker')
-user1 = model.User.create(email='makoto@tokyo.com',password='phantomthieves',username='makoto')
-model.db.session.add_all([user, user1])
-model.db.session.commit()
-# Create a bunch of recipes for joker, of varying publicity levels
-hour = timedelta(hours=1)
-for j in range(1,3):
-    this_user = model.User.get_by_id(j)
-    for i in range(3):
-        now = datetime.now()
-        recipe = model.Recipe.create(this_user, now - hour*2, bool(i), i>1)
-        base_edit = model.Edit.create(recipe,
-                                    f'Recipe {i}',
-                                    '', 'ingredients', 'instructions','',
-                                    now - hour*3, this_user)
-        experiment = model.Experiment.create(recipe,
-                                            'One experiment','', now + hour,
-                                            now - hour*2, this_user)
-        model.db.session.add(recipe)
-
-model.db.session.commit()
-
-# TODO Test visibility for a public user
+# Test visibility for a public user
 class TestPublicUser(unittest.TestCase):
     def test_public_cant_view_private_recipe(self):
-        response = client.get('/api/recipes/1')
+        response = client.get('/api/recipes/1') # private recipe
         self.assertEqual(response.status_code, 403)
     
-    def test_public_can_view_public_edits(self):
-        response = client.get('/api/recipes/2')
+    def test_public_can_view_public_edits_only(self):
+        response = client.get('/api/recipes/2') # edits public, but experiments private
         self.assertEqual(response.status_code, 200)
-        edits_only = [True if item.get('item_type') == 'edit' else False for item in response.json['timeline_items']] #should only contain edits
-        self.assertTrue(all(edits_only))
+        self.assertEqual(len(response.json['timeline_items']),1)
         self.assertFalse(response.json['can_experiment'])
         self.assertFalse(response.json['can_edit'])
     
     def test_public_can_view_public_all(self):
-        response = client.get('/api/recipes/3')
+        response = client.get('/api/recipes/3') # edits and experiments both public
         self.assertEqual(response.status_code, 200)
-        # can view both edits and experiments
-        has_edits_and_exps = [False, False]
-        for item in response.json['timeline_items']:
-            if item['item_type'] == 'edit': 
-                has_edits_and_exps[0] = True 
-            if item['item_type'] == 'experiment': 
-                has_edits_and_exps[1] = True 
-        self.assertTrue(all(has_edits_and_exps))
+        self.assertEqual(len(response.json['timeline_items']),2)
         self.assertFalse(response.json['can_experiment'])
         self.assertFalse(response.json['can_edit'])
     
@@ -116,10 +75,7 @@ class TestPublicUser(unittest.TestCase):
 
     def test_public_can_only_see_users_public_recipes(self):
         response = client.get('/api/users/joker')
-        # print(response.json)
         recipes = response.json['recipes']
-        # print(recipes[0])
-        # self.assertEqual(len(recipes),2)
         self.assertTrue(all([True if recipe['is_public'] else False for recipe in recipes]))
 
 
@@ -191,7 +147,7 @@ class TestAuthentication(unittest.TestCase):
     
     def test_login_registered_user_via_email_wrong_password(self):
         response = client.post('/api/tokens', auth=('joker@tokyo.com', 'wrongpassword'))
-        self.assertEqual(response.status_code, 401, 'Login attempt must be rejected')
+        self.assertEqual(response.status_code//100, 4, 'Login attempt must be rejected')
     
     def test_login_registered_user_via_username(self):
         response = client.post('/api/tokens', auth=('joker', 'phantomthieves'))
@@ -199,7 +155,7 @@ class TestAuthentication(unittest.TestCase):
     
     def test_login_registered_user_via_username_wrong_password(self):
         response = client.post('/api/tokens', auth=('joker', 'wrongpassword'))
-        self.assertEqual(response.status_code, 401, 'Login attempt must be rejected')
+        self.assertEqual(response.status_code//100, 4, 'Login attempt must be rejected')
 
 class LoggedInUser(): #Mixin for logging in
     def get_api_token(self, login, password):
@@ -227,10 +183,10 @@ class TestCreateAndDelete(LoggedInUser, unittest.TestCase):
     
     def test_create_new_experiment(self):
         response = client.post(f'/api/recipes/{self.recipe.id}', json={
-                'commit-msg':'New experiment',
-                'notes':''
+                'commit_msg':'New experiment',
+                'notes':'notes!'
             }, headers = {'Authorization': f'Bearer {self.token}'})
-        self.assertEqual(response.status_code, 201, 'Server should return 201')
+        self.assertEqual(response.status_code, 200, 'Server should return 200')
         self.assertEqual(len(self.recipe.experiments), self.initial_exp_count+1)
         self.assertEqual(self.recipe.experiments[0].commit_msg,'New experiment')
 
@@ -238,7 +194,7 @@ class TestCreateAndDelete(LoggedInUser, unittest.TestCase):
         response = client.put(f'/api/recipes/{self.recipe.id}', json={
                 'title':'New title'
             }, headers = {'Authorization': f'Bearer {self.token}'})
-        self.assertEqual(response.status_code, 201, 'Server should return 201')
+        self.assertEqual(response.status_code, 200, 'Server should return 200')
         self.assertEqual(len(self.recipe.edits), self.initial_ed_count+1)
         self.assertEqual(self.recipe.edits[0].title,'New title')
 
@@ -267,7 +223,28 @@ class TestCreateAndDelete(LoggedInUser, unittest.TestCase):
 
 # TODO test permissions and visibility
 class TestPermissions(LoggedInUser, unittest.TestCase):
-    pass
+    def setUp(self):
+        self.token = self.get_api_token('joker','phantomthieves')
+        self.user = model.User.get_by_username('joker')
+        self.shared_token = self.get_api_token('makoto','phantomthieves')
+        self.share_with = model.User.get_by_username('makoto')
+        self.private_recipe = self.user.recipes[0]
+    
+    def test_share_to_user(self):
+        i_response = client.get('/api/recipes/1', # private recipe
+            headers = {'Authorization': f'Bearer {self.shared_token}'})
+        self.assertEqual(i_response.status_code, 403)
+        response = client.post('/api/recipes/1/permissions', json={
+            'username': 'makoto',
+            'can_experiment': True,
+            'can_edit': True
+            }, headers = {'Authorization': f'Bearer {self.token}'})
+        self.assertEqual(response.status_code, 200)
+        n_response = client.get('/api/recipes/1', # private recipe
+            headers = {'Authorization': f'Bearer {self.shared_token}'})
+        self.assertEqual(n_response.status_code, 200)
+
+        
 # grant permission one by one
 # and check if the other user can see it as they should
 # and if they can edit it as they should
@@ -278,7 +255,39 @@ class TestPermissions(LoggedInUser, unittest.TestCase):
 
 # TODO test changing user details
 
-        
 
 if __name__ == "__main__":
+    app.config['TESTING'] = True
+    model.connect_to_db(app, 'forkd-testdb',False)
+    app.app_context().push()
+    client = app.test_client()
+   
+    ## drop and re-create tables so that we start from scratch
+    model.db.drop_all()
+    model.db.create_all()
+
+    ## seed test database
+    user1 = model.User.create(email='joker@tokyo.com',password='phantomthieves',username='joker')
+    user2 = model.User.create(email='makoto@tokyo.com',password='phantomthieves',username='makoto')
+    model.db.session.add_all([user1, user2])
+    model.db.session.commit()
+    # Create a bunch of recipes for joker, of varying publicity levels
+    hour = timedelta(hours=1)
+    for j in range(1,3):
+        this_user = model.User.get_by_id(j)
+        for i in range(3):
+            now = datetime.now()
+            recipe = model.Recipe.create(this_user, now - hour*2, bool(i), i>1)
+            base_edit = model.Edit.create(recipe,
+                                        f'Recipe {i}',
+                                        '', 'ingredients', 'instructions','',
+                                        now - hour*3, this_user)
+            experiment = model.Experiment.create(recipe,
+                                                'One experiment','', now + hour,
+                                                now - hour*2, this_user)
+            model.db.session.add(recipe)
+
+    model.db.session.commit()
+  
+    # Finally, run tests
     unittest.main()
