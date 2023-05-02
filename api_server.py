@@ -50,7 +50,6 @@ def verify_password(login: str, password: str) -> model.User:
 
 @basic_auth.error_handler
 def basic_auth_error(status):
-    # return error_response(status)
     return '', 403
 
 # POST -- expects Basic Auth Header
@@ -500,14 +499,6 @@ def create_new_edit(id):
         permission = model.Permission.get_by_user_and_recipe(submitter.id, id)
         if not permission or not permission.can_edit:
             return error_response(403)
-        # if not permission or not permission.can_experiment:
-        #     return error_response(403)
-        # if not permission.can_edit and permission.can_experiment:
-            # submit for approval, basically pending approval flag is True,
-            # and commit date is empty
-            # and recipe last_modified is not changed
-            # now = None
-            # pending_approval = True
 
     # db changes
     new_edit = model.Edit.create(this_recipe,
@@ -756,38 +747,7 @@ def delete_edit(id):
     except:
         return error_response(500, 'Cannot commit to db')
 
-##### Aprove pending edit: need to revisit design for this
-# @app.route('/api/edits/<id>', methods=['PATCH'])
-# @token_auth.login_required()
-# def approve_pending_edit(id):
-#     if token_auth.current_user() == 'expired':
-#         return error_response(401)
-#     edit = model.Edit.get_by_id(id)
-#     if not edit:
-#         return error_response(404)
-#     if not edit.pending_approval:
-#         return error_response(409)
-#     # only if submitter is owner or has edit access (and isn't a temp user)
-#     # check if sender is allowed to delete
-#     # can delete if user is owner of recipe or has edit access
-#     submitter = token_auth.current_user()
-#     if submitter.id != edit.recipe.user_id:
-#         permission = model.Permission.get_by_user_and_recipe(submitter.id, edit.recipe_id)
-#         if not permission or not permission.can_edit or submitter.is_temp_user:
-#             return error_response(403)
-
-#     now = datetime.now()
-#     edit.pending_approval = False
-#     edit.commit_date = now
-#     edit.recipe.update_last_modified(now)
-#     model.db.session.add_all([edit, edit.recipe])
-#     model.db.session.commit()
-#     return {'message':'Edit approved'}, 200
-
 ################ Endpoint '/api/experiments/<id>' ############################
-# @app.route('/api/experiments/<id>')
-# @token_auth.login_required(optional=True)
-
 @app.route('/api/experiments/<id>', methods=['DELETE'])
 @token_auth.login_required()
 def delete_experiment(id):
@@ -815,7 +775,7 @@ def delete_experiment(id):
     except:
         return error_response(500, 'Cannot commit to db')
 
-############### NOT HOOKED UP TO FRONTEND
+# NOT HOOKED UP TO FRONTEND -- PUT, to edit a recipe
 @app.route('/api/experiments/<id>', methods=['PUT'])
 @token_auth.login_required()
 def edit_experiment(id):
@@ -883,6 +843,6 @@ def extract_recipe_from_url():
 
 
 if __name__ == '__main__':
-    model.connect_to_db(app, '/forkd-p', False)     # for local dev
-    # model.connect_to_db(app, RDS_URI, False)      # using Amazon RDS instance
+    # model.connect_to_db(app, '/forkd-p', False)     # for local dev
+    model.connect_to_db(app, RDS_URI, False)      # using Amazon RDS instance
     app.run(host='0.0.0.0', debug=True)
