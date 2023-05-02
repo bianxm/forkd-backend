@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 
 # if instructed, drop and re-create the db
 print(sys.argv[1:2])
-db_name = 'test'
+db_name = '/test'
 
 if sys.argv[1:2] and sys.argv[2:3]:
     db_name = sys.argv[2]
@@ -23,7 +23,7 @@ if sys.argv[1:2] and sys.argv[2:3]:
         print("Adding to existing database 'test'...")
 
 # connect to db (and re-create tables, if needed)
-model.connect_to_db(api_server.app, db_name)
+model.connect_to_db(api_server.app, f'/{db_name}')
 api_server.app.app_context().push()
 if sys.argv[1:2] == ['recreate']:
     model.db.create_all()

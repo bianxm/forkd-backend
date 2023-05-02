@@ -230,7 +230,7 @@ class TestPermissions(LoggedInUser, unittest.TestCase):
         self.share_with = model.User.get_by_username('makoto')
         self.private_recipe = self.user.recipes[0]
     
-    def test_share_to_user(self):
+    def test_share_to_user_visibility(self):
         i_response = client.get('/api/recipes/1', # private recipe
             headers = {'Authorization': f'Bearer {self.shared_token}'})
         self.assertEqual(i_response.status_code, 403)
@@ -258,7 +258,7 @@ class TestPermissions(LoggedInUser, unittest.TestCase):
 
 if __name__ == "__main__":
     app.config['TESTING'] = True
-    model.connect_to_db(app, 'forkd-testdb',False)
+    model.connect_to_db(app, '/forkd-testdb',False)
     app.app_context().push()
     client = app.test_client()
    
