@@ -2,7 +2,7 @@
 
 An app where users can save, record 'experiments', and track edits for recipes
 
-This is the backend repo corresponding to the frontend [here](https://github.com/bianxm/forkd-frontend) (still under construction)
+This is the backend repo corresponding to the frontend [here](https://github.com/bianxm/forkd-frontend)
 
 ## Technologies Used
 - PostgreSQL database
@@ -44,14 +44,17 @@ This is the backend repo corresponding to the frontend [here](https://github.com
 - [x] React SPA frontend ([in progress](https://github.com/bianxm/forkd-frontend))
 - [x] Temp user -- all db changes made deleted on logout (so users can try out the app for one session)
 - [x] Update user details (avatar, username, email, password)
-- [ ] Test coverage (currently 49%, and some failing/ broken)
+- [ ] Test coverage (currently 52%, but all pass; doesn't quite cover permissions route)
 
 ### 2.5
 - [ ] Edit experiments -- implemented but not tested
-- [ ] Edit "pull request" -- experimenter can propose an edit, which will then have to be approved by editor or owner (half-implemented, have to deal with earlier assumption that the latest edit represents the current version of an experiment. it should be the first edit _that isn't pending approval_)
+- [ ] Edit "pull request" -- experimenter can propose an edit, which will then have to be approved by editor or owner (half-implemented, have to deal with earlier assumption that the latest edit represents the current version of an experiment. it should be the first edit _that isn't pending approval_. Might require data model changes)
 - [ ] Save experiment "draft", that can later be committed -- implemented but not tested
 
-### Nice-to-haves
+### Nice-to-haves/ Future features
 - Recipe tagging
 - Friends list (for sharing autocomplete as well)
 - Migrate to SQLAlchemy v2.x
+- Email support -- confirm on sign-up, use for password reset emails
+- Extend image upload support to recipe image, and perhaps support interspersing multiple images in experiment notes (markdown)
+- Delete non-temp user
