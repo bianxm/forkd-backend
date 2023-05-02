@@ -3,11 +3,11 @@ from model import (db, connect_to_db, User,
 from sqlalchemy import select, union, desc
 
 def get_shared_with_me(me_id: int) -> list('Recipe'):
-    # """
-    # Given a user's id, return recipes that have been shared with them. 
+    """
+    Given a user's id, return recipes that have been shared with them. 
     
-    # Essentially, all recipes that are associated with that user in the Permissions table.
-    # """
+    Essentially, all recipes that are associated with that user in the Permissions table.
+    """
    
     # SELECT <Recipe> FROM recipes JOIN permissions WHERE permissions.user_id == <me_id>
     select_shared_with_me = select(Recipe).join(Recipe.permissions).where(Permission.user_id==me_id)
@@ -33,22 +33,22 @@ def get_recipe_shared_with(recipe: Recipe) -> list[tuple]:
     return db.session.execute(stmt)
 
 def can_user_view(user: User, recipe: Recipe) -> bool:
-    """Return whether the User can view the given Recipe"""
-    # this_recipe = Recipe.get_by_id(recipe_id)
+    """Returns whether the User can view the given Recipe"""
     if recipe.is_public:
         return True
     select_permission = select(Permission).where(Permission.user_id==user.id).where(Permission.recipe_id==recipe.id)
     return bool(db.session.execute(select_permission).one_or_none())
 
-## Given a user's id and a recipe id, 
-# return a list of timeline items (experiments and edits) in descending chrono order
-# that the user is allowed to view (so either just experiments, or both experiments and edits)
 def get_timeline(viewer_id: int | None, recipe_id: int): # -> list('Edit'|'Experiment'):
-    # return a dict:
-    # timeline_items: edits: list
-    #               : experiments: list -- will not be included if no permission
-    # can_experiment: bool
-    # can_edit: bool
+    """Given a user's id and a recipe id, return a list of timeline items (experiments and edits) in descending chrono order that the user is allowed to view
+    
+    Returns a tuple:
+        (dict ->    {edits: list,
+                    experiments: list -- will not be included if no permission to view experiments},
+        bool -> whether viewer has experiment permissions on the recipe,
+        bool -> whether viewer has edit permissions on the recipe ) 
+    """
+    
     this_recipe = Recipe.get_by_id(recipe_id)
     if not this_recipe:
         return None
@@ -74,9 +74,6 @@ def get_timeline(viewer_id: int | None, recipe_id: int): # -> list('Edit'|'Exper
     
     if this_recipe.is_experiments_public or this_permission is not None:
         timeline_items = {'edits':edits, 'experiments':exps}
-    # return {'timeline_items': timeline_items,
-    #         'can_experiment': can_experiment,
-    #         'can_edit': can_edit}
     return (timeline_items, can_experiment, can_edit)
     
 
