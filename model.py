@@ -312,7 +312,8 @@ def connect_to_db(flask_app, db_uri="/test", echo=True):
     db.app = flask_app
     db.init_app(flask_app)
 
-    print(f"Connected to the db '{db_uri}'!")
+    # print(f"Connected to the db '{db_uri}'!")
+    print(f"Connected to the db!")
 
 if __name__ == '__main__':
     from api_server import app

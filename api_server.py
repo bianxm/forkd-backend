@@ -19,11 +19,12 @@ load_dotenv()
 SPOONACULAR_KEY = os.environ['SPOONACULAR_KEY']
 CLOUDINARY_KEY = os.environ['CLOUDINARY_KEY']
 CLOUDINARY_SECRET = os.environ['CLOUDINARY_SECRET']
-CLOUD_NAME = os.environ['CLOUD_NAME']
 RDS_URI = os.environ['RDS_URI']
+CLOUD_NAME = 'dw0c9rwkd'
 
 app = Flask(__name__)
 app.secret_key = os.environ['FLASK_KEY']
+# model.connect_to_db(app, RDS_URI, False)      # using Amazon RDS instance, uncomment to dockerize
 
 ### Error response helper
 def error_response(status_code=500, message=None):
@@ -843,6 +844,6 @@ def extract_recipe_from_url():
 
 
 if __name__ == '__main__':
-    # model.connect_to_db(app, '/forkd-p', False)     # for local dev
-    model.connect_to_db(app, RDS_URI, False)      # using Amazon RDS instance
-    app.run(host='0.0.0.0', debug=True)
+    model.connect_to_db(app, '/forkd-p', False)     # for local dev
+    # app.run(host='0.0.0.0', debug=True)
+    app.run(host='0.0.0.0', debug=False)
