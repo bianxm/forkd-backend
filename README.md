@@ -44,6 +44,7 @@ This is the backend repo corresponding to the frontend [here](https://github.com
 - [x] React SPA frontend ([in progress](https://github.com/bianxm/forkd-frontend))
 - [x] Temp user -- all db changes made deleted on logout (so users can try out the app for one session)
 - [x] Update user details (avatar, username, email, password)
+  - [x] User avatar image upload via Cloudinary
 - [ ] Test coverage (currently 52%, but all pass; doesn't quite cover permissions route)
 
 ### 2.5

@@ -1,7 +1,7 @@
 """API Server for Forkd"""
 
 from flask import (Flask, request, jsonify)
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 import requests
 from flask_httpauth import HTTPBasicAuth, HTTPTokenAuth
 from werkzeug.http import HTTP_STATUS_CODES
@@ -15,7 +15,7 @@ import os
 from datetime import datetime
 
 
-load_dotenv()
+# load_dotenv()
 SPOONACULAR_KEY = os.environ['SPOONACULAR_KEY']
 CLOUDINARY_KEY = os.environ['CLOUDINARY_KEY']
 CLOUDINARY_SECRET = os.environ['CLOUDINARY_SECRET']
@@ -24,7 +24,7 @@ CLOUD_NAME = 'dw0c9rwkd'
 
 app = Flask(__name__)
 app.secret_key = os.environ['FLASK_KEY']
-# model.connect_to_db(app, RDS_URI, False)      # using Amazon RDS instance, uncomment to dockerize
+model.connect_to_db(app, RDS_URI, False)      # using Amazon RDS instance, uncomment to dockerize
 
 ### Error response helper
 def error_response(status_code=500, message=None):
@@ -100,9 +100,12 @@ def revoke_token():
 @app.route('/api/me')
 @token_auth.login_required
 def get_user():
-    if token_auth.current_user() == 'expired':
+    user = token_auth.current_user()
+    if user == 'expired':
         return {}, 403
-    return token_auth.current_user().to_dict()
+    user_dict = user.to_dict()
+    user_dict['email'] = user.email 
+    return user_dict
 
 ################ Endpoint '/api/users' ############################
 # GET -- return all users TO PAGINATE; unused in Frontend
@@ -462,6 +465,7 @@ def create_new_exp(id):
         return {'id': new_experiment.id,
                 'commit_date': now,
                 'commit_by': submitter.username,
+                'commit_by_avatar': submitter.img_url,
                 'item_type': 'experiment',
                 'commit_msg': commit_msg,
                 'notes': notes,
@@ -516,6 +520,7 @@ def create_new_edit(id):
         return {'id': new_edit.id,
                 'commit_date': now,
                 'commit_by': submitter.username,
+                'commit_by_avatar': submitter.img_url,
                 'item_type': 'edit',
                 'title': title,
                 'description': description,
@@ -845,5 +850,5 @@ def extract_recipe_from_url():
 
 if __name__ == '__main__':
     model.connect_to_db(app, '/forkd-p', False)     # for local dev
-    # app.run(host='0.0.0.0', debug=True)
-    app.run(host='0.0.0.0', debug=False)
+    app.run(host='0.0.0.0', debug=True)
+    # app.run(host='0.0.0.0', debug=False)

@@ -1,0 +1,15 @@
+services:
+  api:
+    env_file:
+      - .env
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: forkd-be
+  client:
+    build:
+      context: ../frontend
+      dockerfile: ../frontend/Dockerfile
+    image: forkd-fe
+    ports:
+      - "3000:80"
