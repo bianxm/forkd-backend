@@ -1,7 +1,7 @@
 """API Server for Forkd"""
 
 from flask import (Flask, request, jsonify)
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 import requests
 from flask_httpauth import HTTPBasicAuth, HTTPTokenAuth
 from werkzeug.http import HTTP_STATUS_CODES
@@ -15,7 +15,7 @@ import os
 from datetime import datetime
 
 
-# load_dotenv()
+load_dotenv()
 SPOONACULAR_KEY = os.environ['SPOONACULAR_KEY']
 CLOUDINARY_KEY = os.environ['CLOUDINARY_KEY']
 CLOUDINARY_SECRET = os.environ['CLOUDINARY_SECRET']
@@ -24,7 +24,7 @@ CLOUD_NAME = 'dw0c9rwkd'
 
 app = Flask(__name__)
 app.secret_key = os.environ['FLASK_KEY']
-model.connect_to_db(app, RDS_URI, False)      # using Amazon RDS instance, uncomment to dockerize
+# model.connect_to_db(app, RDS_URI, False)      # using Amazon RDS instance, uncomment to dockerize
 
 ### Error response helper
 def error_response(status_code=500, message=None):
@@ -425,8 +425,10 @@ def delete_recipe(id):
     except:
         return error_response(500, 'Cannot commit to db')
 
+
+################ Endpoint '/api/recipes/<id>/experiments' ############################
 # POST -- Create a new experiment
-@app.route('/api/recipes/<id>', methods=['POST'])
+@app.route('/api/recipes/<id>/experiments', methods=['POST'])
 @token_auth.login_required()
 def create_new_exp(id):
     """Create a new experiment for a recipe
@@ -474,8 +476,9 @@ def create_new_exp(id):
     except:
         return error_response(500,'Cannot commit to db')
 
-# PUT (or PATCH?) -- Create a new edit
-@app.route('/api/recipes/<id>', methods=['PUT']) #or PATCH?
+################ Endpoint '/api/recipes/<id>/edits' ############################
+# POST -- Create a new edit
+@app.route('/api/recipes/<id>/edits', methods=['POST'])
 @token_auth.login_required()
 def create_new_edit(id):
     """Create a new edit for a recipe
@@ -569,6 +572,45 @@ def read_permissions(recipe_id):
         response['shared_with'] = shared_with
     return response
 
+# PUT - edit permission level for recipe globally
+@app.route('/api/recipes/<recipe_id>/permissions', methods=['PUT'])
+@token_auth.login_required()
+def update_global_permissions(recipe_id):
+    """Change a recipe's global permissions.
+
+    Expects:    {is_public: bool, is_experiments_public: bool}
+    Returns:    200 if successful
+    """
+    submitter = token_auth.current_user()
+    recipe = model.Recipe.get_by_id(recipe_id)
+
+    # check if submitter is allowed to change permissions: owner or can_edit
+    if recipe.user_id!=submitter.id:
+        submitters_p = model.Permission.get_by_user_and_recipe(submitter.id, recipe_id)
+        if (not submitters_p) or (not submitters_p.can_edit):
+            return error_response(403)
+
+    # parse out POST params
+    params = request.get_json()
+    is_public = params.get('is_public')
+    is_experiments_public = params.get('is_experiments_public')
+
+    # if is_experiments_public is true, is_public has to be true
+    if is_experiments_public:
+        is_public = True
+    
+    # update recipe!
+    try:
+        recipe.is_public = is_public
+        recipe.is_experiments_public = is_experiments_public
+        model.db.session.add(recipe)
+        model.db.session.commit()
+
+        return {'message':'Global permissions successfully updated'}, 200
+    except:
+        return error_response(500, 'Cannot commit to db') 
+
+
 # POST - create new permission (give new user a new permission)
 @app.route('/api/recipes/<recipe_id>/permissions', methods=['POST'])
 @token_auth.login_required()
@@ -615,6 +657,7 @@ def create_permission(recipe_id):
     except:
         return error_response(500, 'Cannot commit to db')
 
+########### Endpoint '/api/recipes/<id>/permissions/<user_id>' ###################
 @app.route('/api/recipes/<recipe_id>/permissions/<user_id>', methods=['DELETE'])
 @token_auth.login_required()
 def delete_permission(recipe_id, user_id):
@@ -665,14 +708,14 @@ def update_or_delete_permission(recipe_id, user_id):
         submitters_p = model.Permission.get_by_user_and_recipe(submitter.id, recipe_id)
         if (not submitters_p) or (not submitters_p.can_edit):
             return error_response(403)
-    # if association doesn't exist, error out (404 - Not Found)
+    # if association doesn't exist, create a new one!
     permission = model.Permission.get_by_user_and_recipe(user_id, recipe_id)
     if not permission:
-        return error_response(409)
-
-    # update permission
-    permission.can_edit = can_edit
-    permission.can_experiment = can_experiment
+        permission = model.Permission.create(user_id, recipe_id, can_experiment, can_edit)
+    else:
+        # if association exists, update permission
+        permission.can_edit = can_edit
+        permission.can_experiment = can_experiment
     model.db.session.add(permission)
     try:
         model.db.session.commit()
@@ -680,49 +723,9 @@ def update_or_delete_permission(recipe_id, user_id):
     except:
         return error_response(500, 'Cannot commit to db')
 
-# PATCH - edit permission level for recipe globally
-@app.route('/api/recipes/<recipe_id>/permissions', methods=['PUT'])
-@token_auth.login_required()
-def update_global_permissions(recipe_id):
-    """Change a recipe's global permissions.
-
-    Expects:    {is_public: bool, is_experiments_public: bool}
-    Returns:    200 if successful
-    """
-    submitter = token_auth.current_user()
-    recipe = model.Recipe.get_by_id(recipe_id)
-
-    # check if submitter is allowed to change permissions: owner or can_edit
-    if recipe.user_id!=submitter.id:
-        submitters_p = model.Permission.get_by_user_and_recipe(submitter.id, recipe_id)
-        if (not submitters_p) or (not submitters_p.can_edit):
-            return error_response(403)
-
-    # parse out POST params
-    params = request.get_json()
-    is_public = params.get('is_public')
-    is_experiments_public = params.get('is_experiments_public')
-
-    # if is_experiments_public is true, is_public has to be true
-    if is_experiments_public:
-        is_public = True
-    
-    # update recipe!
-    try:
-        recipe.is_public = is_public
-        recipe.is_experiments_public = is_experiments_public
-        model.db.session.add(recipe)
-        model.db.session.commit()
-
-        return {'message':'Global permissions successfully updated'}, 200
-    except:
-        return error_response(500, 'Cannot commit to db') 
-
-
 ################ Endpoint '/api/edits/<id>' ############################
 # @app.route('/api/edits/<id>')
 # @token_auth.login_required(optional=True)
-
 @app.route('/api/edits/<id>', methods=['DELETE'])
 @token_auth.login_required()
 def delete_edit(id):

@@ -37,7 +37,7 @@ class TestPublicUser(unittest.TestCase):
     
     def test_public_cant_create_exp(self):
         initial_exp_count = model.Experiment.query.count()
-        response = client.post('/api/recipes/1', data={
+        response = client.post('/api/recipes/1/experiments', data={
             'commit_msg':'Hello!'
         })
     
@@ -46,7 +46,7 @@ class TestPublicUser(unittest.TestCase):
     
     def test_public_cant_create_edit(self):
         initial_ed_count = model.Edit.query.count()
-        response = client.put('/api/recipes/1', data={
+        response = client.post('/api/recipes/1/edits', data={
             'title': 'Hello!',
             'ingredients': 'Hello!',
             'instructions': 'Hello!'
@@ -182,7 +182,7 @@ class TestCreateAndDelete(LoggedInUser, unittest.TestCase):
         self.assertEqual(self.user.recipes[0].edits[-1].title, 'Testing Recipe Creation')
     
     def test_create_new_experiment(self):
-        response = client.post(f'/api/recipes/{self.recipe.id}', json={
+        response = client.post(f'/api/recipes/{self.recipe.id}/experiments', json={
                 'commit_msg':'New experiment',
                 'notes':'notes!'
             }, headers = {'Authorization': f'Bearer {self.token}'})
@@ -191,7 +191,7 @@ class TestCreateAndDelete(LoggedInUser, unittest.TestCase):
         self.assertEqual(self.recipe.experiments[0].commit_msg,'New experiment')
 
     def test_create_new_edit(self):
-        response = client.put(f'/api/recipes/{self.recipe.id}', json={
+        response = client.post(f'/api/recipes/{self.recipe.id}/edits', json={
                 'title':'New title'
             }, headers = {'Authorization': f'Bearer {self.token}'})
         self.assertEqual(response.status_code, 200, 'Server should return 200')
@@ -199,7 +199,7 @@ class TestCreateAndDelete(LoggedInUser, unittest.TestCase):
         self.assertEqual(self.recipe.edits[0].title,'New title')
 
     def test_delete_edit(self):
-        response1 = client.put(f'/api/recipes/{self.recipe.id}', json={
+        response1 = client.post(f'/api/recipes/{self.recipe.id}/edits', json={
                 'title':'New title'
             }, headers = {'Authorization': f'Bearer {self.token}'})
         response = client.delete(f'/api/edits/{self.recipe.edits[0].id}',
