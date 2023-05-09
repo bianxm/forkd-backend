@@ -1,15 +1,37 @@
-# Forkd: A Recipe Journal and (soft) Version Control System
+# Forkd: Recipe Journal and Version Control
 
-An app where users can save, record 'experiments', and track edits for recipes
 
-This is the backend repo corresponding to the frontend [here](https://github.com/bianxm/forkd-frontend)
+<figure>
+<img src=".github/images/demo.gif" width="500" />
+<a href="https://www.youtube.com/watch?v=ZVaxeGYfDWc">
+<figcaption>Demo video on Youtube</figcaption>
+</a>
+
+<a href="http://3.14.77.97">Live Demo Site</a>
+</figure>
+
+An app where users can save, record 'experiments', and track edits for recipes.
+
+This is the backend repo corresponding to the frontend [here](https://github.com/bianxm/forkd-frontend).
+
+## Features
+- Save recipes, which can be inputted by the user, or extracted from a webpage
+- Log 'experiments' to recipes
+- Track edits to recipes by saving snapshots of the recipe after an edit, git-style 
+- Delete recipes, experiments, and edits
+- Control global and per-user permissions to recipes
+- Edit user settings such as username, email, password, and avatar
 
 ## Technologies Used
 - PostgreSQL database
 - Flask backend
-- [Spoonacular API](https://spoonacular.com/food-api) 
+- [Spoonacular API](https://spoonacular.com/food-api) for recipe extraction from webpage
+- [Flask-HTTPAuth](https://github.com/miguelgrinberg/Flask-HTTPAuth) for authentication
+- Cloudinary API for image upload
 
 ## Data Model
+
+<figure><img src=".github/images/data-model.png" width="800" /><figcaption>Data Model</figcaption></figure>
 
 [Here](https://dbdiagram.io/d/6428e0565758ac5f1725ff32), 5 tables
 * Users table - email, password, username
@@ -53,9 +75,22 @@ This is the backend repo corresponding to the frontend [here](https://github.com
 - [ ] Save experiment "draft", that can later be committed -- implemented but not tested
 
 ### Nice-to-haves/ Future features
-- Recipe tagging
-- Friends list (for sharing autocomplete as well)
-- Migrate to SQLAlchemy v2.x
-- Email support -- confirm on sign-up, use for password reset emails
-- Extend image upload support to recipe image, and perhaps support interspersing multiple images in experiment notes (markdown)
-- Delete non-temp user
+- [ ] Recipe tagging and search
+- [ ] Friends list (for sharing autocomplete as well)
+- [ ] Fully migrate to SQLAlchemy v2.x
+- [ ] Email support -- confirm on sign-up, use for password reset emails
+- [ ] Extend image upload support to recipe image, and perhaps support interspersing multiple images in experiment notes (markdown)
+- [ ] Delete/ deactivate non-temp user
+
+## Install locally
+1. Clone this repo
+2. Create your virtual environment and activate.
+3. Install everything in requirements.txt with ```pip3 install -r requirements.txt```
+4. Set up your database. You can either run ```python3 model.py recreate <username:password@host:port/db_name>```, which will set up the schema for you but leave you with an empty database. Alternatively, for some dummy data, you can run ```python3 seed_database.py <username:password@host:port/db_name>```. (If you are using a different flavor of SQL than Postgres, you'll have to edit line 308 on model.py to replace 'postgres' with whatever one you are using.)
+4. Copy .env.example and replace all variable values to the relevant values for you. You will need a Spoonacular key, a Cloudinary secret and key, and a Flask secret key (which can be any random string), as well as your dev database uri. Rename to '.env'.
+4. Run the Flask dev server with ```python3 api_server.py```
+5. Go to the [corresponding frontend repo](https://github.com/bianxm/forkd-frontend) for installation instructions for that.
+
+## Sources
+- This is my capstone project for [Hackbright Academy](https://hackbrightacademy.com/), which taught us Python, Flask, Javascript, and React from the ground up in a whirlwind five weeks. 
+- I am also deeply indebted to Miguel Grinberg's hefty [Flask Mega-Tutorial](https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-i-hello-world), in particular for the authentication implementation.

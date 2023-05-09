@@ -19,7 +19,8 @@ load_dotenv() # COMMENT OUT WHEN BUILDING IMAGE
 SPOONACULAR_KEY = os.environ['SPOONACULAR_KEY']
 CLOUDINARY_KEY = os.environ['CLOUDINARY_KEY']
 CLOUDINARY_SECRET = os.environ['CLOUDINARY_SECRET']
-RDS_URI = os.environ['RDS_URI']
+RDS_URI = os.environ['RDS_URI'] # for prod
+DEV_URI = os.environ['DEV_URI']
 CLOUD_NAME = 'dw0c9rwkd'
 
 app = Flask(__name__)
@@ -853,6 +854,6 @@ def extract_recipe_from_url():
 
 
 if __name__ == '__main__':
-    model.connect_to_db(app, '/forkd-dev', False)     # for local dev; change '/forkd-p' to whatever dev database you're using
+    model.connect_to_db(app, DEV_URI, False)     # for local dev
     app.run(host='0.0.0.0', debug=True)
     # app.run(host='0.0.0.0', debug=False)
