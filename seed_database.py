@@ -1,11 +1,8 @@
 """Script to seed the database"""
-# TODO Redo this using api_server file and current model!!!
 
 import sys
 import os
-# from random import randint
 import model
-# import server
 import api_server
 from datetime import datetime, timedelta
 

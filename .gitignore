@@ -1,3 +1,7 @@
 env
 .env
 *pycache*
+.coverage
+forkd.service
+quicktests.py
+quicktests.rest

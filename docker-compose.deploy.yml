@@ -1,0 +1,9 @@
+services:
+  api:
+    env_file:
+      - .env
+    image: ghcr.io/bianxm/forkd-backend:latest
+  client:
+    image: ghcr.io/bianxm/forkd-frontend:latest
+    ports:
+      - "3000:80"

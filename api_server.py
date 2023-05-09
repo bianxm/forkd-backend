@@ -1,7 +1,7 @@
 """API Server for Forkd"""
 
 from flask import (Flask, request, jsonify)
-from dotenv import load_dotenv
+from dotenv import load_dotenv # COMMENT OUT WHEN BUILDING IMAGE
 import requests
 from flask_httpauth import HTTPBasicAuth, HTTPTokenAuth
 from werkzeug.http import HTTP_STATUS_CODES
@@ -15,7 +15,7 @@ import os
 from datetime import datetime
 
 
-load_dotenv()
+load_dotenv() # COMMENT OUT WHEN BUILDING IMAGE
 SPOONACULAR_KEY = os.environ['SPOONACULAR_KEY']
 CLOUDINARY_KEY = os.environ['CLOUDINARY_KEY']
 CLOUDINARY_SECRET = os.environ['CLOUDINARY_SECRET']
@@ -24,7 +24,7 @@ CLOUD_NAME = 'dw0c9rwkd'
 
 app = Flask(__name__)
 app.secret_key = os.environ['FLASK_KEY']
-# model.connect_to_db(app, RDS_URI, False)      # using Amazon RDS instance, uncomment to dockerize
+# model.connect_to_db(app, RDS_URI, False)      # using Amazon RDS instance, uncomment to build image
 
 ### Error response helper
 def error_response(status_code=500, message=None):
@@ -71,8 +71,8 @@ def verify_token(token):
 def token_auth_error(status):
     return error_response(status)
 
-# DELETE -- expects Authentication: Bearer Header containing session
-@app.route('/api/tokens', methods=['DELETE']) # logout - revoke token
+# DELETE -- expects Authentication: Bearer Header, logout - revoke token
+@app.route('/api/tokens', methods=['DELETE'])
 @token_auth.login_required
 def revoke_token():
     if token_auth.current_user() == 'expired':
@@ -108,7 +108,7 @@ def get_user():
     return user_dict
 
 ################ Endpoint '/api/users' ############################
-# GET -- return all users TO PAGINATE; unused in Frontend
+# GET -- return all users; unused in Frontend
 @app.route('/api/users')
 def read_all_users():
     return [user.to_dict() for user in model.User.get_all()], 200
@@ -219,7 +219,7 @@ def delete_user(id):
     return error_response(501) # Not Implemented
     
 
-# PUT (or PATCH?) -- Edit user details
+# PATCH -- Edit user details
 @app.route('/api/users/<id>', methods=['PATCH'])
 @token_auth.login_required()
 def update_user(id):
@@ -294,7 +294,7 @@ def update_user(id):
     
 
 ################ Endpoint '/api/recipes' ############################
-# GET -- return list of all recipes (paginated, with filters)
+# GET -- return details of featured recipes (hard coded by recipe id)
 @app.route('/api/recipes')
 def get_featured_recipes():
     # featured_ids = [20, 10, 12, 11]
@@ -427,7 +427,7 @@ def delete_recipe(id):
 
 
 ################ Endpoint '/api/recipes/<id>/experiments' ############################
-# POST -- Create a new experiment
+# POST -- Create a new experiment for a recipe
 @app.route('/api/recipes/<id>/experiments', methods=['POST'])
 @token_auth.login_required()
 def create_new_exp(id):
@@ -477,7 +477,7 @@ def create_new_exp(id):
         return error_response(500,'Cannot commit to db')
 
 ################ Endpoint '/api/recipes/<id>/edits' ############################
-# POST -- Create a new edit
+# POST -- Create a new edit for a recipe
 @app.route('/api/recipes/<id>/edits', methods=['POST'])
 @token_auth.login_required()
 def create_new_edit(id):
@@ -536,7 +536,7 @@ def create_new_edit(id):
         return error_response(500,'Cannot commit to db')
 
 ########### Endpoint '/api/recipes/<id>/permissions' ###################
-# GET - return is_public, is_experiments_public, and list of users with permissions
+# GET -- return is_public, is_experiments_public, and list of users with permissions
 @app.route('/api/recipes/<recipe_id>/permissions')
 @token_auth.login_required()
 def read_permissions(recipe_id):
@@ -572,7 +572,7 @@ def read_permissions(recipe_id):
         response['shared_with'] = shared_with
     return response
 
-# PUT - edit permission level for recipe globally
+# PUT -- edit permission level for recipe globally
 @app.route('/api/recipes/<recipe_id>/permissions', methods=['PUT'])
 @token_auth.login_required()
 def update_global_permissions(recipe_id):
@@ -611,7 +611,7 @@ def update_global_permissions(recipe_id):
         return error_response(500, 'Cannot commit to db') 
 
 
-# POST - create new permission (give new user a new permission)
+# POST -- create new permission (give new user a new permission)
 @app.route('/api/recipes/<recipe_id>/permissions', methods=['POST'])
 @token_auth.login_required()
 def create_permission(recipe_id):
@@ -658,6 +658,7 @@ def create_permission(recipe_id):
         return error_response(500, 'Cannot commit to db')
 
 ########### Endpoint '/api/recipes/<id>/permissions/<user_id>' ###################
+# DELETE -- revoke a user's permission to a recipe
 @app.route('/api/recipes/<recipe_id>/permissions/<user_id>', methods=['DELETE'])
 @token_auth.login_required()
 def delete_permission(recipe_id, user_id):
@@ -724,8 +725,7 @@ def update_or_delete_permission(recipe_id, user_id):
         return error_response(500, 'Cannot commit to db')
 
 ################ Endpoint '/api/edits/<id>' ############################
-# @app.route('/api/edits/<id>')
-# @token_auth.login_required(optional=True)
+# DELETE -- delete given edit
 @app.route('/api/edits/<id>', methods=['DELETE'])
 @token_auth.login_required()
 def delete_edit(id):
@@ -757,6 +757,7 @@ def delete_edit(id):
         return error_response(500, 'Cannot commit to db')
 
 ################ Endpoint '/api/experiments/<id>' ############################
+# DELETE -- delete given experiment
 @app.route('/api/experiments/<id>', methods=['DELETE'])
 @token_auth.login_required()
 def delete_experiment(id):
@@ -784,7 +785,7 @@ def delete_experiment(id):
     except:
         return error_response(500, 'Cannot commit to db')
 
-# NOT HOOKED UP TO FRONTEND -- PUT, to edit a recipe
+# PUT -- edit an experiment -- NOT HOOKED UP TO FRONTEND YET
 @app.route('/api/experiments/<id>', methods=['PUT'])
 @token_auth.login_required()
 def edit_experiment(id):
@@ -852,6 +853,6 @@ def extract_recipe_from_url():
 
 
 if __name__ == '__main__':
-    model.connect_to_db(app, '/forkd-p', False)     # for local dev
+    model.connect_to_db(app, '/forkd-dev', False)     # for local dev; change '/forkd-p' to whatever dev database you're using
     app.run(host='0.0.0.0', debug=True)
     # app.run(host='0.0.0.0', debug=False)
