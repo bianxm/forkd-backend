@@ -82,14 +82,32 @@ This is the backend repo corresponding to the frontend [here](https://github.com
 - [ ] Extend image upload support to recipe image, and perhaps support interspersing multiple images in experiment notes (markdown)
 - [ ] Delete/ deactivate non-temp user
 
-## Install locally
+## Install in local dev environment
 1. Clone this repo
 2. Create your virtual environment and activate.
-3. Install everything in requirements.txt with ```pip3 install -r requirements.txt```
+3. Install the dev requirements with ```pip3 install -r requirements.dev.txt```. (The difference between the dev requirements and the prod requirements is that, in dev, psycopg2-binary can be used. In prod, they recommend to build psycopg2 from source. Further, python-dotenv is used in dev to manage environment variables, which is not needed in prod.)
 4. Set up your database. You can either run ```python3 model.py recreate <username:password@host:port/db_name>```, which will set up the schema for you but leave you with an empty database. Alternatively, for some dummy data, you can run ```python3 seed_database.py <username:password@host:port/db_name>```. (If you are using a different flavor of SQL than Postgres, you'll have to edit line 308 on model.py to replace 'postgres' with whatever one you are using.)
-4. Copy .env.example and replace all variable values to the relevant values for you. You will need a Spoonacular key, a Cloudinary secret and key, and a Flask secret key (which can be any random string), as well as your dev database uri. Rename to '.env'.
+4. Copy `.env.example` and replace all variable values to the relevant values for you. You will need a Spoonacular key, a Cloudinary secret and key, and a Flask secret key (which can be any random string), as well as your dev database uri. Rename to `.env`.
 4. Run the Flask dev server with ```python3 api_server.py```
 5. Go to the [corresponding frontend repo](https://github.com/bianxm/forkd-frontend) for installation instructions for that.
+
+## Deploy your own
+I write about my experience deploying this app to AWS in [this Hashnode article](https://bianxm.hashnode.dev/deploying-my-first-web-app). Note that I used an Amazon RDS database for deployment, so my docker compose files don't involve building a separate database container.
+
+### Build from source 
+1. Clone this repo and the frontend repo so that they are on the same level. Rename the `forkd-frontend` directory to just `frontend`, or change lines 11-12 on `docker-compose.yml` to the appropriate directory name.
+2. Set up your database. You can either run ```python3 model.py recreate <username:password@host:port/db_name>```, which will set up the schema for you but leave you with an empty database. Alternatively, for some dummy data, you can run ```python3 seed_database.py <username:password@host:port/db_name>```.
+3. Go into the backend directory. Copy `.env.example`, replace wil relevant values, and save as `.env`.
+4. While still in the backend directory, run `docker compose up`.
+5. The app will be accessible on localhost:3000.
+
+### Download Docker image from GHCR
+1. Copy `.env.example` and `docker-compose.deploy.yml` from this repo. Replace  `.env.example` with relevant values and rename to `.env`. Rename `docker-compose.deploy.yml` to  `docker-compose.yml`.
+2. Set up your database. You can either run ```python3 model.py recreate <username:password@host:port/db_name>```, which will set up the schema for you but leave you with an empty database. Alternatively, for some dummy data, you can run ```python3 seed_database.py <username:password@host:port/db_name>```.
+3. [Login to GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry) with `docker login`.
+4. Pull the latest images with `docker compose pull`.
+5. Run `docker compose up`.
+6. The app will be accessible on localhost:3000.
 
 ## Sources
 - This is my capstone project for [Hackbright Academy](https://hackbrightacademy.com/), which taught us Python, Flask, Javascript, and React from the ground up in a whirlwind five weeks. 
