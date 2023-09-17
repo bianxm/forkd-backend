@@ -7,7 +7,7 @@
 <figcaption>Demo video on Youtube</figcaption>
 </a>
 
-<a href="http://3.14.77.97">Live Demo Site</a>
+<a href="https://forkd.bianxm.dev/">Live Demo Site</a>
 </figure>
 
 An app where users can save, record 'experiments', and track edits for recipes.
@@ -81,6 +81,7 @@ This is the backend repo corresponding to the frontend [here](https://github.com
 - [ ] Email support -- confirm on sign-up, use for password reset emails
 - [ ] Extend image upload support to recipe image, and perhaps support interspersing multiple images in experiment notes (markdown)
 - [ ] Delete/ deactivate non-temp user
+- [ ] Cron job to delete temp users who didn't log out
 
 ## Install in local dev environment
 1. Clone this repo
@@ -104,10 +105,9 @@ I write about my experience deploying this app to AWS in [this Hashnode article]
 ### Download Docker image from GHCR
 1. Copy `.env.example` and `docker-compose.deploy.yml` from this repo. Replace  `.env.example` with relevant values and rename to `.env`. Rename `docker-compose.deploy.yml` to  `docker-compose.yml`.
 2. Set up your database. You can either run ```python3 model.py recreate <username:password@host:port/db_name>```, which will set up the schema for you but leave you with an empty database. Alternatively, for some dummy data, you can run ```python3 seed_database.py <username:password@host:port/db_name>```.
-3. [Login to GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry) with `docker login`.
-4. Pull the latest images with `docker compose pull`.
-5. Run `docker compose up`.
-6. The app will be accessible on localhost:3000.
+3. Pull the latest images with `docker compose pull`.
+4. Run `docker compose up`.
+5. The app will be accessible on localhost:3000.
 
 ## Sources
 - This is my capstone project for [Hackbright Academy](https://hackbrightacademy.com/), which taught us Python, Flask, Javascript, and React from the ground up in a whirlwind five weeks. 
