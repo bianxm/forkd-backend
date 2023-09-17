@@ -5,3 +5,9 @@ env
 forkd.service
 quicktests.py
 quicktests.rest
+.terraform
+*.tfstate
+*.tfstate.*
+*.lock.hcl
+*.tfvars
+env.sh
