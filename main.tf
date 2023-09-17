@@ -24,17 +24,15 @@ resource "aws_instance" "forkd_server" {
   }
 }
 
-## perhaps change to a better name
-resource "aws_security_group" "http_into_instance" {
+resource "aws_security_group" "instance_sg" {
   description = "launch-wizard-2 created 2023-05-08T21:20:48.411Z"
 }
 
-## change to only accept from ALB
 resource "aws_vpc_security_group_ingress_rule" "http_into_instance" {
   description       = "http from internet"
   security_group_id = aws_security_group.http_into_instance.id
   ip_protocol       = "tcp"
-  cidr_ipv4         = "0.0.0.0/0"
+  referenced_security_group_id = aws_security_group.lb_sg.id
   from_port         = 80
   to_port           = 80
 }
@@ -82,7 +80,7 @@ resource "aws_security_group" "lb_sg" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "lb_sg_http" {
-  # description       = "http from internet"
+  description       = "http from internet"
   security_group_id = aws_security_group.lb_sg.id
   ip_protocol       = "tcp"
   cidr_ipv4         = "0.0.0.0/0"
@@ -91,7 +89,7 @@ resource "aws_vpc_security_group_ingress_rule" "lb_sg_http" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "lb_sg_https" {
-  # description       = "https from internet"
+  description       = "https from internet"
   security_group_id = aws_security_group.lb_sg.id
   ip_protocol       = "tcp"
   cidr_ipv4         = "0.0.0.0/0"
